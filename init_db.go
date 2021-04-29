@@ -113,4 +113,3 @@ func main() {
 	}
 	log.Printf("Time to init all languages: %v seconds\n", time.Now().Sub(start).Seconds())
 }
-

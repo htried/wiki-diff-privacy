@@ -32,19 +32,19 @@ func init() {
 
 // struct to represent 1 synthetic pageview
 type pageView struct {
-	PV_ID   	string // a synthetic unique id for the pageview
-	User_ID 	string // a synthetic user id for the pageview
-	Day 		string // date of the pageview
-	Lang 		string // wikipedia project the pageview comes from
-	Name 		string // the name of the page visited
+	PV_ID   string // a synthetic unique id for the pageview
+	User_ID string // a synthetic user id for the pageview
+	Day     string // date of the pageview
+	Lang    string // wikipedia project the pageview comes from
+	Name    string // the name of the page visited
 }
 
 type dbParams struct {
-	Lang 		string // language of an aggregation
-	Day 		string // date of an aggregation
-	Kind 		string // kind of aggregation (either 'pv' or 'user')
-	Epsilon 	float64
-	Delta 		float64
+	Lang    string // language of an aggregation
+	Day     string // date of an aggregation
+	Kind    string // kind of aggregation (either 'pv' or 'user')
+	Epsilon float64
+	Delta   float64
 }
 
 // the function that runs when `go run beam.go` is typed into the command line
@@ -78,11 +78,11 @@ func main() {
 
 		// set up params that we will write to the output db
 		normalParams := dbParams{
-			Lang: 		lang,
-			Day: 		time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
-			Kind: 		"pv",
-			Epsilon: 	float64(-1),
-			Delta: 		float64(-1),
+			Lang:    lang,
+			Day:     time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
+			Kind:    "pv",
+			Epsilon: float64(-1),
+			Delta:   float64(-1),
 		}
 
 		// do the normal Beam count, passing in params
@@ -96,11 +96,11 @@ func main() {
 
 				// set up params that we will write to the output db
 				dpParams := dbParams{
-					Lang: 		lang,
-					Day: 		time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
-					Kind: 		"pv",
-					Epsilon: 	eps,
-					Delta: 		del,
+					Lang:    lang,
+					Day:     time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
+					Kind:    "pv",
+					Epsilon: eps,
+					Delta:   del,
 				}
 
 				// map that string to the PCollection you get when you do a DP page count, passing in params
@@ -158,13 +158,13 @@ func countPageViews(s beam.Scope, col beam.PCollection, params dbParams) beam.PC
 	// yields PCollection<wdp.TableRow>
 	out := beam.ParDo(s, func(k string, v int, params dbParams, emit func(out wdp.TableRow)) {
 		emit(wdp.TableRow{
-			Name:		k,
-			Views:		v,
-			Lang: 		params.Lang,
-			Day: 		params.Day,
-			Kind: 		params.Kind,
-			Epsilon: 	params.Epsilon,
-			Delta:   	params.Delta,
+			Name:    k,
+			Views:   v,
+			Lang:    params.Lang,
+			Day:     params.Day,
+			Kind:    params.Kind,
+			Epsilon: params.Epsilon,
+			Delta:   params.Delta,
 		})
 	}, counted, beam.SideInput{Input: beamParams})
 	return out
@@ -199,13 +199,13 @@ func privateCountPageViews(s beam.Scope, col beam.PCollection, params dbParams) 
 	// yields PCollection<wdp.TableRow>
 	out := beam.ParDo(s, func(k string, v int64, params dbParams, emit func(out wdp.TableRow)) {
 		emit(wdp.TableRow{
-			Name:		k,
-			Views:		int(v),
-			Lang: 		params.Lang,
-			Day: 		params.Day,
-			Kind: 		params.Kind,
-			Epsilon: 	params.Epsilon,
-			Delta:   	params.Delta,
+			Name:    k,
+			Views:   int(v),
+			Lang:    params.Lang,
+			Day:     params.Day,
+			Kind:    params.Kind,
+			Epsilon: params.Epsilon,
+			Delta:   params.Delta,
 		})
 	}, counted, beam.SideInput{Input: beamParams})
 

@@ -82,19 +82,19 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 
 	// create outward facing parameters
 	var params = outParams{
-		Lang: 				vars.Lang,
-		Eps: 				vars.Epsilon,
-		Sensitivity: 		vars.Sensitivity,
-		QualEps: 			wdp.QualEps(vars.Epsilon, 0.5),
-		Alpha: 				vars.Alpha,
-		PropWithin: 		vars.PropWithin,
+		Lang:               vars.Lang,
+		Eps:                vars.Epsilon,
+		Sensitivity:        vars.Sensitivity,
+		QualEps:            wdp.QualEps(vars.Epsilon, 0.5),
+		Alpha:              vars.Alpha,
+		PropWithin:         vars.PropWithin,
 		AggregateThreshold: wdp.AggregationThreshold(vars.Sensitivity, vars.Epsilon, vars.Alpha, vars.PropWithin),
 	}
 
 	// put outward facing parameters and results into one struct
 	var out = output{
-		Params: 	params,
-		Results:	results,
+		Params:  params,
+		Results: results,
 	}
 
 	// send the struct back as a json file

@@ -40,4 +40,3 @@ func main() {
 
 	log.Printf("Time to clean up all databases: %v seconds\n", time.Now().Sub(start).Seconds())
 }
-
