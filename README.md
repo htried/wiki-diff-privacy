@@ -14,6 +14,8 @@ Then, navigate to the base directory (`cd /path/to/wiki-diff-privacy`) and:
 3) `go run clean_db.go` — removes old dbs and synthetic data, which can take up a lot of space
 4) `go run server.go` — runs the server. Should be accessible at 127.0.0.1:8000 in a browser.
 
+Information for how to deploy this site on Cloud VPS is available at `config/README.md`.
+
 ## License
 The source code for this interface is released under the [MIT license](https://github.com/geohci/wiki-diff-privacy/blob/main/LICENSE).
 
