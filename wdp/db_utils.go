@@ -18,8 +18,8 @@ import (
 // gets the DSN based on an input string
 func DSN(dbName string) (string, error) {
     // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
-    // f, err := os.Open("/Users/haltriedman/replica.my.cnf") // LOCAL
-    f, err := os.Open("/home/htriedman/replica.my.cnf") // CLOUD VPS
+    f, err := os.Open("/Users/haltriedman/replica.my.cnf") // LOCAL
+    // f, err := os.Open("/home/htriedman/replica.my.cnf") // CLOUD VPS
     defer f.Close()
     if err != nil {
         fmt.Printf("Error %s when opening replica file", err)
