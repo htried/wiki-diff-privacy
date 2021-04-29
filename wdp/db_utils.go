@@ -17,9 +17,8 @@ import (
 
 // gets the DSN based on an input string
 func DSN(dbName string) (string, error) {
-    // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON TOOLFORGE VS LOCALLY
+    // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
     // f, err := os.Open("/Users/haltriedman/replica.my.cnf") // LOCAL
-    // f, err := os.Open("/data/project/diff-privacy-beam/replica.my.cnf") // TOOLFORGE
     f, err := os.Open("/home/htriedman/replica.my.cnf") // CLOUD VPS
     defer f.Close()
     if err != nil {
@@ -43,9 +42,7 @@ func DSN(dbName string) (string, error) {
     }
 
     // return DSN
-    // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON TOOLFORGE VS LOCALLY
-    return fmt.Sprintf("%s:%s@tcp(127.0.0.1)/%s", username, password, dbName), nil // LOCAL & CLOUD VPS
-    // return fmt.Sprintf("%s:%s@tcp(tools.db.svc.eqiad.wmflabs)/%s", username, password, dbName), nil // TOOLFORGE
+    return fmt.Sprintf("%s:%s@tcp(127.0.0.1)/%s", username, password, dbName), nil
 }
 
 // creates the DB if it doesn't already exist, and returns a connection to the DB
@@ -71,9 +68,7 @@ func DBConnection() (*sql.DB, error) {
     defer cancelfunc()
 
     // create DB if not exists
-    // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON TOOLFORGE VS LOCALLY
-    res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS wdp") // LOCAL & CLOUD VPS
-    // res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS s54717__wdp_p") // TOOLFORGE
+    res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS wdp")
     if err != nil {
         log.Printf("Error %s when creating DB\n", err)
         return nil, err
@@ -92,9 +87,7 @@ func DBConnection() (*sql.DB, error) {
     // PART 2: CONNECT TO EXISTING DB
 
     // get DSN again, this time for the specific DB we just made
-    // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON TOOLFORGE VS LOCALLY
-    dbName, err = DSN("wdp") // LOCAL & CLOUD VPS
-    // dbName, err = DSN("s54717__wdp_p") // TOOLFORGE
+    dbName, err = DSN("wdp")
     if err != nil {
     	log.Printf("Error %s when getting dbname\n", err)
     	return nil, err
@@ -130,15 +123,15 @@ func DBConnection() (*sql.DB, error) {
 
 // creates a table with name tbl_name in DB db. Called in init_db.go.
 func CreateTable(db *sql.DB, tbl_name string) error {
-	var query string
+    var query string
 
     // check to make sure tbl_name is right format, then construct query based on type
-	if strings.HasPrefix(tbl_name, "data_") {
-    	query = `CREATE TABLE IF NOT EXISTS ` + tbl_name + `(id int primary key auto_increment, name text)`
-    } else if strings.HasPrefix(tbl_name, "output_") {
-    	query = `CREATE TABLE IF NOT EXISTS ` + tbl_name + `(Name text, Views int, Epsilon float, Delta float)`
+    if tbl_name == "data" {
+        query = `CREATE TABLE IF NOT EXISTS data(pv_id INT PRIMARY KEY AUTO_INCREMENT, user_id TEXT, day DATE, lang TEXT, name TEXT)`
+    } else if tbl_name == "output" {
+        query = `CREATE TABLE IF NOT EXISTS output(Name TEXT, Views INT, Lang TEXT, Day DATE, Kind TEXT, Epsilon FLOAT, Delta FLOAT)`
     } else {
-    	return fmt.Errorf("input to create table was not properly formated: %s", tbl_name)
+        return fmt.Errorf("input to create table was not properly formated: %s", tbl_name)
     }
 
     // set context
@@ -162,28 +155,27 @@ func CreateTable(db *sql.DB, tbl_name string) error {
 }
 
 // function for inserting faux data for a specific language in batches so as not
-// to overwhelm the limits of mysql for loading data (which is around ~50,000)
-func BatchInsert(db *sql.DB, tbl_name string, topFiftyArticles [50]Article) error {
+// to overwhelm the limits of mysql for loading data (which is around ~50,000 placeholders)
+func BatchInsert(db *sql.DB, tbl_name, date, lang string, topFiftyArticles [50]Article) error {
     // initialize things to insert, batch counter, and query string
     var inserts []string
     var params []interface{}
     batch := 0
-    query := "INSERT INTO " + tbl_name + "(name) VALUES "
+    query := "INSERT INTO " + tbl_name + "(user_id, day, lang, name) VALUES "
 
     // for each of the top fifty articles
     for i := 0; i < 50; i++ {
         // for the number of views that it has
-    	for j := 0; j < topFiftyArticles[i].Views; j++ {
+        for j := 0; j < topFiftyArticles[i].Views; j++ {
             // append a parameterized variable to the query and the name of the page
-    		inserts = append(inserts, "(?)")
-    		page := strings.ReplaceAll(topFiftyArticles[i].Name, "'", "")
-        	params = append(params, page)
+            inserts = append(inserts, "(?, ?, ?, ?)")
+            params = append(params, "a", date, lang, topFiftyArticles[i].Name)
 
             // increment the batch counter
             batch++
 
-            // if the batch counter is 30,000 or greater
-            if batch >= 30000 {
+            // if the batch counter is 10,000 or greater
+            if batch >= 10000 {
 
                 // insert the values into the db
                 err := insert(db, query, inserts, params)
@@ -196,7 +188,7 @@ func BatchInsert(db *sql.DB, tbl_name string, topFiftyArticles [50]Article) erro
                 params = nil
                 batch = 0
             }
-    	}
+        }
     }
 
     // insert whatever is left at the end
@@ -207,6 +199,7 @@ func BatchInsert(db *sql.DB, tbl_name string, topFiftyArticles [50]Article) erro
 
     return nil
 }
+
 
 
 // The actual workhorse of the inserion process. Safely inserts a set of params
@@ -250,21 +243,28 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     var normalCount []TableRow
     var dpCount []TableRow
 
-    // get the nam of the table we should be querying
-    var yesterday = time.Now().AddDate(0, 0, -1).Format("2006_01_02")
-    var tbl_name = fmt.Sprintf("output_%s_%s", lang, yesterday)
-
     // create the query -- use the mysql round function to get around the fact that floats are imprecise
-    var query = `SELECT * FROM ` + tbl_name + ` WHERE (Epsilon=-1 AND Delta=-1) OR (ROUND(Epsilon, 1)=ROUND(?, 1) AND ROUND(Delta, 9)=ROUND(?, 9))`
+    // the inner join filters to just the most recent day of data, and lang filters the language
+    // -1 is the code for normal, so we get -1 and the input epsilon and delta
+    var query = `
+        SELECT Name, Views, Lang, Day, Kind, Epsilon, Delta FROM output
+        INNER JOIN (
+            SELECT MAX(Day) as max_day
+            FROM output
+        ) sub
+        ON output.Day=sub.max_day
+        WHERE
+            ((Epsilon=-1 AND Delta=-1) OR (ROUND(Epsilon, 1)=ROUND(?, 1) AND ROUND(Delta, 9)=ROUND(?, 9)))
+            AND Lang=?
+            And Kind="pv"
+        `
 
     // set context
     ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancelfunc()
 
-    // query the table (-1 is the code for normal, so we get -1 and the input epsilon and delta)
-    res, err := db.QueryContext(ctx, query, epsilon, delta)
-    // res, err := db.Query(query, epsilon, delta)
-    // res, err := db.Query(query)
+    // query the table
+    res, err := db.QueryContext(ctx, query, epsilon, delta, lang)
     if err != nil {
         log.Printf("Error %s when conducting query", err)
         return normalCount, dpCount, err
@@ -276,8 +276,7 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     for res.Next() {
         var row TableRow
 
-        res.Scan(&row.Name, &row.Views, &row.Epsilon, &row.Delta)
-        // log.Print(row)
+        res.Scan(&row.Name, &row.Views, &row.Lang, &row.Day, &row.Kind, &row.Epsilon, &row.Delta)
 
         // if epsilon or delta is -1, add to the normal list; otherwise, add to the dpcount list
         if row.Epsilon == float64(-1) || row.Delta == float64(-1) {
@@ -290,81 +289,32 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     return normalCount, dpCount, nil
 }
 
-// function for systematically dropping the tables of old data from previous days.
+// function for systematically dropping the rows of old data from previous days.
 // called in clean_db.go, and should be used after beam.go does aggregating.
-func DropOldData(db *sql.DB) error {
-    // get the date of tables we should be keeping
-    var yesterday = time.Now().AddDate(0, 0, -1).Format("2006_01_02")
-
-    // get the names of all tables in the db
-    res, err := db.Query("SHOW TABLES")
-    if err != nil {
-    	log.Printf("Error %s in showing tables query", err)
-    	return err
+func DropOldData(db *sql.DB, tbl_name, date string) error {
+    if tbl_name != "data" && tbl_name != "output" {
+        return fmt.Errorf("Error: incorrect formatting for table name %s", tbl_name)
     }
 
-    var table string
-
-    // iterate through the results
-    for res.Next() {
-        res.Scan(&table)
-        // if the table is not from yesterday and has the prefix output, we drop it
-        if !strings.HasSuffix(table, yesterday) && strings.HasPrefix(table, "output_") {
-        	err := drop(db, table)
-        	if err != nil {
-        		log.Printf("Error %s while dropping table %s", err, table)
-        		return err
-        	}
-        }
-    }
-    return nil
-}
-
-// function for systematically dropping the tables of faux data that we get as an
-// input. called in clean_db.go, and should be used after beam.go does aggregating.
-func DropSyntheticData(db *sql.DB) error {
-
-    //get the names of all the tables in the db
-    res, err := db.Query("SHOW TABLES")
-    if err != nil {
-    	log.Printf("Error %s in showing tables query", err)
-    	return err
-    }
-
-    var table string
-
-    // iterate through results
-    for res.Next() {
-        res.Scan(&table)
-        // if the table has the prefix "data_", we drop it
-        if strings.HasPrefix(table, "data_") {
-        	err := drop(db, table)
-        	if err != nil {
-        		log.Printf("Error %s while dropping table %s", err, table)
-        		return err
-        	}
-        }
-    }
-    return nil
-}
-
-// function for dropping a table named tbl_name from the DB. called in DropSyntheticData
-// and DropOldData.
-func drop(db *sql.DB, tbl_name string) error {
-    // construct query
-    query := "DROP TABLE " + tbl_name
+    query := `DELETE FROM ` + tbl_name + ` WHERE day != "` + date + `"`
 
     // set context
     ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancelfunc()
 
-    // execute the drop
-    _, err := db.ExecContext(ctx, query)
+    // execute the row deletion
+    res, err := db.ExecContext(ctx, query)
     if err != nil {
-        log.Printf("Error %s dropping table", err)
+        log.Printf("Error %s deleting rows", err)
         return err
     }
 
-    log.Printf("table %s dropped", tbl_name)
+    rows, err := res.RowsAffected()
+    if err != nil {
+        log.Printf("Error %s when finding rows affected", err)
+        return err
+    }
+    log.Printf("%d pageviews deleted ", rows)
     return nil
 }
+

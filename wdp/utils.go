@@ -35,6 +35,9 @@ type ApiResponse struct {
 type TableRow struct {
 	Name 	string 		// name of the page visited
 	Views 	int 		// number of views for the day
+	Lang 	string 		// language of the page
+	Day 	string		// the date in question
+	Kind	string 		// user or pv
 	Epsilon float64 	// epsilon used for calculating the number of views (-1 is none)
 	Delta 	float64 	// delta used for calculating the number of views (-1 is none)
 }
@@ -117,8 +120,6 @@ func CreateOutputStruct(normalCount, dpCount []TableRow, vars PageVars) map[stri
 		output[art.Name]["dp-views"] = -1
 		output[art.Name]["do-aggregate"] = -1
 	}
-
-	// log.Print(output)
 
 	// for each DP-altered article
 	for i, art := range dpCount {

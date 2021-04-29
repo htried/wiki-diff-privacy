@@ -21,17 +21,20 @@ func main() {
 	defer db.Close()
 	log.Printf("Successfully connected to database")
 
-	// drop the synthetic data
-	err = wdp.DropSyntheticData(db)
+	var yesterday = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	log.Printf(yesterday)
+
+	// drop old synthetic data from before yesterday
+	err = wdp.DropOldData(db, "data", yesterday)
 	if err != nil {
 		log.Printf("Error %s when dropping synthetic data", err)
 		return
 	}
 
-	// drop the data from previous days
-	err = wdp.DropOldData(db)
+	// drop old output data from previous days
+	err = wdp.DropOldData(db, "output", yesterday)
 	if err != nil {
-		log.Printf("Error %s when dropping data from previous days", err)
+		log.Printf("Error %s when dropping synthetic data", err)
 		return
 	}
 

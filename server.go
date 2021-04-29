@@ -80,25 +80,22 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 	// feed those into a util function to format them correctly
 	results := wdp.CreateOutputStruct(normalCount, dpCount, vars)
 
-
 	// create outward facing parameters
 	var params = outParams{
-		Lang: 				vars.Lang,
-		Eps: 				vars.Epsilon,
-		Sensitivity: 		vars.Sensitivity,
-		QualEps: 			wdp.QualEps(vars.Epsilon, 0.5),
-		Alpha: 				vars.Alpha,
-		PropWithin: 		vars.PropWithin,
+		Lang:               vars.Lang,
+		Eps:                vars.Epsilon,
+		Sensitivity:        vars.Sensitivity,
+		QualEps:            wdp.QualEps(vars.Epsilon, 0.5),
+		Alpha:              vars.Alpha,
+		PropWithin:         vars.PropWithin,
 		AggregateThreshold: wdp.AggregationThreshold(vars.Sensitivity, vars.Epsilon, vars.Alpha, vars.PropWithin),
 	}
 
 	// put outward facing parameters and results into one struct
 	var out = output{
-		Params: 	params,
-		Results:	results,
+		Params:  params,
+		Results: results,
 	}
-	// out.Params = params
-	// out.Results = results
 
 	// send the struct back as a json file
 	w.Header().Set("Content-Type", "application/json")
@@ -116,7 +113,5 @@ func main() {
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/api/v1/pageviews", PageViews)
 
-	// NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON TOOLFORGE VS LOCALLY
-	log.Fatal(http.ListenAndServe(":8000", nil)) // LOCAL & CLOUD VPS
-	// log.Fatal(http.ListenAndServe("0.0.0.0:8000", nil)) // TOOLFORGE
+	log.Fatal(http.ListenAndServe(":8000", nil))
 }
