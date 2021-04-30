@@ -5,7 +5,6 @@ package wdp
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"context"
 	"log"
 	"time"
@@ -13,7 +12,17 @@ import (
 	"strings"
     "os"
     "bufio"
+    "encoding/csv"
+    "strconv"
+    "math/rand"
+
+    _ "github.com/go-sql-driver/mysql"
+
 )
+
+// uids := make(map[string]string) // use in case of collisions
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 
 // gets the DSN based on an input string
 func DSN(dbName string) (string, error) {
@@ -156,23 +165,40 @@ func CreateTable(db *sql.DB, tbl_name string) error {
 
 // function for inserting faux data for a specific language in batches so as not
 // to overwhelm the limits of mysql for loading data (which is around ~50,000 placeholders)
-func BatchInsert(db *sql.DB, tbl_name, date, lang string, topFiftyArticles [50]Article) error {
+func BatchInsert(db *sql.DB, date, lang string, topFiftyArticles [50]Article) error {
     // initialize things to insert, batch counter, and query string
     var inserts []string
     var params []interface{}
     batch := 0
-    query := "INSERT INTO " + tbl_name + "(user_id, day, lang, name) VALUES "
+    query := "INSERT INTO data (user_id, day, lang, name) VALUES "
+    viewsize := 0
+    for i := 0; i < 50; i++ {
+        viewsize += topFiftyArticles[i].Views
+    }
 
+    wikisize, ok := LanguageMap[lang]
+    if !ok {
+        return fmt.Errorf("Language to insert is not in LanguageMap in validate.go")
+    }
+
+    uids, err := initUsers(wikisize, viewsize)
+    if err != nil {
+        log.Printf("Error initializing UIDs %s", err)
+        return err
+    }
+
+    uidCounter := 0
     // for each of the top fifty articles
     for i := 0; i < 50; i++ {
         // for the number of views that it has
         for j := 0; j < topFiftyArticles[i].Views; j++ {
             // append a parameterized variable to the query and the name of the page
             inserts = append(inserts, "(?, ?, ?, ?)")
-            params = append(params, "a", date, lang, topFiftyArticles[i].Name)
+            params = append(params, uids[uidCounter], date, lang, topFiftyArticles[i].Name)
 
-            // increment the batch counter
+            // increment the batch counter and the UID counter
             batch++
+            uidCounter++
 
             // if the batch counter is 10,000 or greater
             if batch >= 10000 {
@@ -180,7 +206,7 @@ func BatchInsert(db *sql.DB, tbl_name, date, lang string, topFiftyArticles [50]A
                 // insert the values into the db
                 err := insert(db, query, inserts, params)
                 if err != nil {
-                    log.Printf("error %s while inserting into table %s", err, tbl_name)
+                    log.Printf("error %s while inserting into data table", err)
                 }
 
                 // reset everything back to 0/empty list
@@ -192,7 +218,7 @@ func BatchInsert(db *sql.DB, tbl_name, date, lang string, topFiftyArticles [50]A
     }
 
     // insert whatever is left at the end
-    err := insert(db, query, inserts, params)
+    err = insert(db, query, inserts, params)
     if err != nil {
         log.Printf("error %s while inserting", err)
     }
@@ -318,3 +344,79 @@ func DropOldData(db *sql.DB, tbl_name, date string) error {
     return nil
 }
 
+
+// initializes a list of randomly ordered userhashes that occur with the frequency
+// given in {large, medium, small}wiki.csv.
+// Outputs a list of length viewsize
+func initUsers(wikisize string, viewsize int) ([]string, error) {
+    var output []string
+
+    // read in the size of the wiki as a csv
+    f, err := os.Open(fmt.Sprintf("data/%swikis.csv", wikisize)) // NOTE: NEED TO ESTABLISH EXPLICIT PATH FOR THIS ON CLOUD VPS
+                                                                //  AND CHANGE SHELL COMMANDS TO COPY CSVS TO THAT PATH
+    if err != nil {
+        log.Printf("Error %s opening csv", err)
+        return output, err
+    }
+    r := csv.NewReader(f)
+    records, err := r.ReadAll()
+    if err != nil {
+        log.Printf("Error %s reading csv", err)
+        return output, err
+    }
+
+    // for each row in the pdf
+    for _, row := range records {
+        // convert num views to an int
+        numViews, err := strconv.Atoi(row[0])
+        if err != nil {
+            log.Printf("Error %s converting to int", err)
+            return output, err
+        }
+        // convert proportion to a float
+        proportion, err := strconv.ParseFloat(row[1], 64)
+        if err != nil {
+            log.Printf("Error %s converting to float", err)
+            return output, err
+        }
+        // get estimated number of users with that many views
+        estNumUsers := int((proportion * float64(viewsize)) / float64(numViews))
+
+        // for each user, generate an id and append it numViews many times to the output
+        for i := 0; i < estNumUsers; i++ {
+            uid := generateUID(10) // assume no collisions for the moment
+            for j := 0; j < numViews; j++ {
+                output = append(output, uid)
+            }
+        }
+    }
+
+    // shuffle order of views so that they will not all fall in one kind of page
+    rand.Seed(time.Now().Unix())
+    rand.Shuffle(len(output), func(i, j int) {
+        output[i], output[j] = output[j], output[i]
+    })
+
+    // ensure that output is the right length (because this process involves rounding)
+
+    // if too short, generate more single-view people
+    for len(output) < viewsize {
+        uid := generateUID(10)
+        output = append(output, uid)
+    }
+
+    // if too long, cut to the correct size
+    if len(output) > viewsize {
+        output = output[:viewsize]
+    }
+    return output, nil
+}
+
+// returns a randomly generated n-character UID
+func generateUID(n int) string {
+    b := make([]rune, n)
+    for i := range b {
+        b[i] = letters[rand.Intn(len(letters))]
+    }
+    return string(b)
+}

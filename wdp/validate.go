@@ -26,10 +26,17 @@ import (
 
 // list of wikipedias ranging in size from 5 million views/day to 20,000 views/day to illustrate effects of size
 var LanguageCodes = []string{"simple", "he", "uk", "km", "gan"}
+var LanguageMap = map[string]string{
+	"simple": 	"small",
+	"he":		"medium",
+	"uk": 		"medium",
+	"km": 		"small",
+	"gan":		"small",
+}
 
 // various configurations of epsilon and delta to compute the view count per page with
 var Epsilons = []float64{0.1, 0.5, 1, 5}
-var Deltas = []float64{math.Pow10(-9), math.Pow10(-8), math.Pow10(-7), math.Pow10(-6)}
+var Deltas = []float64{math.Pow10(-9), math.Pow10(-8), math.Pow10(-7), math.Pow10(-6)} 
 
 
 type PageVars struct {
