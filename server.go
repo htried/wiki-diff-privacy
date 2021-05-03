@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -104,6 +105,15 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 
 // get DB connection, bind functions to paths, and start listener
 func main() {
+	// set up logging
+	f, err := os.OpenFile("/home/htriedman/info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+
 	// connect to the DB
 	db, err = wdp.DBConnection()
 	if err != nil {
