@@ -39,7 +39,7 @@ var Epsilons = map[string][]float64{
 	"pageview": 	{float64(0.1), float64(1), float64(5)},
 	"user":			{float64(5), float64(10), float64(25)},
 }
-var Deltas = []float64{math.Pow10(-9), math.Pow10(-8), math.Pow10(-7), math.Pow10(-6)}
+var Deltas = []float64{math.Pow10(-9), math.Pow10(-8)}
 var Sensitivities = map[string][]int{
 	"pageview": 	{1},
 	"user":			{5, 10},
