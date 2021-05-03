@@ -33,13 +33,14 @@ type ApiResponse struct {
 
 // struct to represent a row of the output table
 type TableRow struct {
-	Name 	string 		// name of the page visited
-	Views 	int 		// number of views for the day
-	Lang 	string 		// language of the page
-	Day 	string		// the date in question
-	Kind	string 		// user or pv
-	Epsilon float64 	// epsilon used for calculating the number of views (-1 is none)
-	Delta 	float64 	// delta used for calculating the number of views (-1 is none)
+	Name 		string 		// name of the page visited
+	Views 		int 		// number of views for the day
+	Lang 		string 		// language of the page
+	Day 		string		// the date in question
+	Kind		string 		// user or pv or normal
+	Epsilon 	float64 	// epsilon used for calculating the number of views (-1 is none)
+	Delta 		float64 	// delta used for calculating the number of views (-1 is none)
+	Sensitivity int 		// sensitivity used for denoting privacy unit (-1 is none)
 }
 
 // get the top 50 highest-performing articles for a given language lang from

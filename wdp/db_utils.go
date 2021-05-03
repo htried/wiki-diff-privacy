@@ -110,7 +110,7 @@ func DBConnection() (*sql.DB, error) {
     }
 
     // config stuff — TODO: this might have to go
-    db.SetMaxOpenConns(60)
+    // db.SetMaxOpenConns(60)
     // db.SetMaxIdleConns(30)
     db.SetMaxIdleConns(0)
 
@@ -264,7 +264,7 @@ func insert(db *sql.DB, query string, inserts []string, params []interface{}) er
 
 // function to query the database and get back the normal count and a DP count
 // based on the input (epsilon, delta) tuple
-func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []TableRow, error) {
+func Query(db *sql.DB, lang, kind string, epsilon, delta float64, sensitivity int) ([]TableRow, []TableRow, error) {
     // set up output structs
     var normalCount []TableRow
     var dpCount []TableRow
@@ -273,16 +273,21 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     // the inner join filters to just the most recent day of data, and lang filters the language
     // -1 is the code for normal, so we get -1 and the input epsilon and delta
     var query = `
-        SELECT Name, Views, Lang, Day, Kind, Epsilon, Delta FROM output
+        SELECT Name, Views, Lang, Day, Kind, Epsilon, Delta, Sensitivity FROM output
         INNER JOIN (
             SELECT MAX(Day) as max_day
             FROM output
         ) sub
         ON output.Day=sub.max_day
         WHERE
-            ((Epsilon=-1 AND Delta=-1) OR (ROUND(Epsilon, 1)=ROUND(?, 1) AND ROUND(Delta, 9)=ROUND(?, 9)))
+            ((Epsilon=-1
+            AND Delta=-1)
+            OR
+            (ROUND(Epsilon, 1)=ROUND(?, 1)
+            AND ROUND(Delta, 9)=ROUND(?, 9)
+            AND Kind=?
+            AND Sensitivity=?))
             AND Lang=?
-            And Kind="pv"
         `
 
     // set context
@@ -290,7 +295,7 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     defer cancelfunc()
 
     // query the table
-    res, err := db.QueryContext(ctx, query, epsilon, delta, lang)
+    res, err := db.QueryContext(ctx, query, epsilon, delta, kind, sensitivity, lang)
     if err != nil {
         log.Printf("Error %s when conducting query", err)
         return normalCount, dpCount, err
@@ -302,7 +307,7 @@ func Query(db *sql.DB, lang string, epsilon, delta float64) ([]TableRow, []Table
     for res.Next() {
         var row TableRow
 
-        res.Scan(&row.Name, &row.Views, &row.Lang, &row.Day, &row.Kind, &row.Epsilon, &row.Delta)
+        res.Scan(&row.Name, &row.Views, &row.Lang, &row.Day, &row.Kind, &row.Epsilon, &row.Delta, &row.Sensitivity)
 
         // if epsilon or delta is -1, add to the normal list; otherwise, add to the dpcount list
         if row.Epsilon == float64(-1) || row.Delta == float64(-1) {

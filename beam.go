@@ -40,11 +40,12 @@ type pageView struct {
 }
 
 type dbParams struct {
-	Lang    string // language of an aggregation
-	Day     string // date of an aggregation
-	Kind    string // kind of aggregation (either 'pv' or 'user')
-	Epsilon float64
-	Delta   float64
+	Lang    	string // language of an aggregation
+	Day     	string // date of an aggregation
+	Kind    	string // kind of aggregation (either 'pageview', 'user', or 'normal')
+	Epsilon 	float64
+	Delta   	float64
+	Sensitivity int
 }
 
 // the function that runs when `go run beam.go` is typed into the command line
@@ -78,40 +79,47 @@ func main() {
 
 		// set up params that we will write to the output db
 		normalParams := dbParams{
-			Lang:    lang,
-			Day:     time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
-			Kind:    "pv",
-			Epsilon: float64(-1),
-			Delta:   float64(-1),
+			Lang:    		lang,
+			Day:     		time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
+			Kind:    		"normal",
+			Epsilon: 		float64(-1),
+			Delta:   		float64(-1),
+			Sensitivity:	-1,
 		}
 
 		// do the normal Beam count, passing in params
 		normalCount := countPageViews(s, filtered, normalParams)
 
-		// for each (epsilon, delta) tuple
-		for _, eps := range wdp.Epsilons["pageviews"] {
-			for _, del := range wdp.Deltas["pageviews"] {
-				// cast them to a string as a key
-				key := strconv.FormatFloat(eps, 'f', -1, 64) + "|" + strconv.FormatFloat(del, 'f', -1, 64)
+		// for the different kinds of privacy units
+		for _, kind := range wdp.PrivacyUnits {
+			// for each (epsilon, delta, sensitivity) tuple
+			for _, eps := range wdp.Epsilons[kind] {
+				for _, del := range wdp.Deltas {
+					for _, sens := range wdp.Sensitivities[kind] {
+						// cast them to a string as a key
+						key := strconv.Itoa(sens) + "|" + strconv.FormatFloat(eps, 'f', -1, 64) + "|" + strconv.FormatFloat(del, 'f', -1, 64)
 
-				// set up params that we will write to the output db
-				dpParams := dbParams{
-					Lang:    lang,
-					Day:     time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
-					Kind:    "pv",
-					Epsilon: eps,
-					Delta:   del,
+						// set up params that we will write to the output db
+						dpParams := dbParams{
+							Lang:    		lang,
+							Day:     		time.Now().AddDate(0, 0, -1).Format("2006-01-02"), // yesterday
+							Kind:    		kind,
+							Epsilon: 		eps,
+							Delta:   		del,
+							Sensitivity: 	sens,
+						}
+
+						// map that string to the PCollection you get when you do a DP page count, passing in params
+						dpMap[key] = privateCountPageViews(s, filtered, dpParams)
+					}
 				}
-
-				// map that string to the PCollection you get when you do a DP page count, passing in params
-				dpMap[key] = privateCountPageViews(s, filtered, dpParams)
 			}
 		}
 
 		// write normal count to db
 		databaseio.Write(s, "mysql", dsn, "output", []string{}, normalCount)
 
-		// for each (epsilon, delta) tuple
+		// for each (epsilon, delta, sensitivity) tuple
 		for _, privCount := range dpMap {
 			// write that DP count to db
 			databaseio.Write(s, "mysql", dsn, "output", []string{}, privCount)
@@ -158,13 +166,15 @@ func countPageViews(s beam.Scope, col beam.PCollection, params dbParams) beam.PC
 	// yields PCollection<wdp.TableRow>
 	out := beam.ParDo(s, func(k string, v int, params dbParams, emit func(out wdp.TableRow)) {
 		emit(wdp.TableRow{
-			Name:    k,
-			Views:   v,
-			Lang:    params.Lang,
-			Day:     params.Day,
-			Kind:    params.Kind,
-			Epsilon: params.Epsilon,
-			Delta:   params.Delta,
+			Name:    		k,
+			Views:   		v,
+			Lang:    		params.Lang,
+			Day:     		params.Day,
+			Kind:    		params.Kind,
+			Epsilon: 		params.Epsilon,
+			Delta:   		params.Delta,
+			Sensitivity: 	params.Sensitivity,
+
 		})
 	}, counted, beam.SideInput{Input: beamParams})
 	return out
@@ -199,13 +209,14 @@ func privateCountPageViews(s beam.Scope, col beam.PCollection, params dbParams) 
 	// yields PCollection<wdp.TableRow>
 	out := beam.ParDo(s, func(k string, v int64, params dbParams, emit func(out wdp.TableRow)) {
 		emit(wdp.TableRow{
-			Name:    k,
-			Views:   int(v),
-			Lang:    params.Lang,
-			Day:     params.Day,
-			Kind:    params.Kind,
-			Epsilon: params.Epsilon,
-			Delta:   params.Delta,
+			Name:		    k,
+			Views:		   	int(v),
+			Lang:    		params.Lang,
+			Day:     		params.Day,
+			Kind:    		params.Kind,
+			Epsilon: 		params.Epsilon,
+			Delta:   		params.Delta,
+			Sensitivity: 	params.Sensitivity,
 		})
 	}, counted, beam.SideInput{Input: beamParams})
 

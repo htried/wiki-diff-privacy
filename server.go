@@ -71,7 +71,7 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// query the database to get normalCount and dpCount
-	normalCount, dpCount, err := wdp.Query(db, vars.Lang, vars.Epsilon, vars.Delta)
+	normalCount, dpCount, err := wdp.Query(db, vars.Lang, vars.PrivUnit, vars.Epsilon, vars.Delta, vars.Sensitivity)
 	if err != nil {
 		log.Printf("error %v querying database\n", err)
 		return
