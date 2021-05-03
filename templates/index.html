@@ -4,10 +4,10 @@
 <head>
 	<title>Differential Privacy + Wikipedia Exploration</title>
 	<!-- NOTE: CHANGE THESE TO RUN LOCALLY VS ON CLOUD VPS -->
-	<!-- LOCAL -->
+	<!-- CLOUD VPS -->
 	<!-- <link href="/etc/diff-privacy-beam/static/favicon.ico" rel="shortcut icon"/>
 	<link href="/etc/diff-privacy-beam/static/style.css" rel="stylesheet" type="text/css"/> -->
-	<!-- CLOUD VPS -->
+	<!-- LOCAL -->
 	<!-- <link href="./static/favicon.ico" rel="shortcut icon"/>
 	<link href="./static/style.css" rel="stylesheet" type="text/css"/> -->
 	<link href="https://tools-static.wmflabs.org/fontcdn/css?family=Merriweather:400,400italic,700,700italic&subset=latin" rel="stylesheet" type="text/css">
@@ -356,8 +356,8 @@
 
 		function queryDiffPrivate() {
 			// NOTE: SWITCH BETWEEN RUNNING LOCALLY AND ON CLOUD VPS
-			var queryUrl = "http://127.0.0.1:8000/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
-			// var queryUrl = "https://diff-privacy-beam.wmcloud.org/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
+			// var queryUrl = "http://127.0.0.1:8000/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
+			var queryUrl = "https://diff-privacy-beam.wmcloud.org/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
 			$.ajax(queryUrl, {success: render_results.bind(this),
 							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)}
 							  }
