@@ -20,9 +20,8 @@ import (
 
 )
 
-// uids := make(map[string]string) // use in case of collisions
+// for the creation of UIDS 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 
 // gets the DSN based on an input string
 func DSN(dbName string) (string, error) {
