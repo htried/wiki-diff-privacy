@@ -359,7 +359,7 @@ func initUsers(wikisize string, viewsize int) ([]string, error) {
     // read in the size of the wiki as a csv
     // NOTE: SWITCH THESE TO RUN LOCALLY VS CLOUD VPS
     // f, err := os.Open(fmt.Sprintf("data/%swikis.csv", wikisize)) // LOCAL
-    f, err := os.Open(fmt.Sprintf("/etc/diff-privacy-beam/data/%swikis.csv", wikisize)) // CLOUD VPS
+    f, err := os.Open(fmt.Sprintf("/etc/diff-privacy-beam/%swikis.csv", wikisize)) // CLOUD VPS
     if err != nil {
         log.Printf("Error %s opening csv", err)
         return output, err

@@ -24,9 +24,9 @@ cd ${TMP_PATH}/${REPO_LBL}
 cd
 
 echo "Copying static files..."
-cp ${TMP_PATH}/${REPO_LBL}/static/* ${ETC_PATH}/static
-cp ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}/templates
-cp ${TMP_PATH}/${REPO_LBL}/data/* ${ETC_PATH}/data
+cp ${TMP_PATH}/${REPO_LBL}/static/* ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}
+cp ${TMP_PATH}/${REPO_LBL}/data/* ${ETC_PATH}
 
 echo "Copying configuration files..."
 cp ${TMP_PATH}/${REPO_LBL}/config/* ${ETC_PATH}
