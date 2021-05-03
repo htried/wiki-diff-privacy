@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
+	// "os"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -106,13 +106,13 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 // get DB connection, bind functions to paths, and start listener
 func main() {
 	// set up logging
-	f, err := os.OpenFile("/home/htriedman/info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
+	// f, err := os.OpenFile("/home/htriedman/info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer f.Close()
 
-	log.SetOutput(f)
+	// log.SetOutput(f)
 
 	// connect to the DB
 	db, err = wdp.DBConnection()
@@ -126,8 +126,8 @@ func main() {
 	// NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
 	// fs := http.FileServer(http.Dir("./static"))
 	// http.Handle("/static/", http.StripPrefix("/static/", fs)) // LOCALLY
-	// fs := http.FileServer(http.Dir("/etc/diff-privacy-beam/static/"))
-	// http.Handle("/etc/diff-privacy-beam/static/", http.StripPrefix("/etc/diff-privacy-beam/static/", fs)) // CLOUD VPS
+	fs := http.FileServer(http.Dir("/etc/diff-privacy-beam/static/"))
+	http.Handle("/etc/diff-privacy-beam/static/", http.StripPrefix("/etc/diff-privacy-beam/static/", fs)) // CLOUD VPS
 
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
