@@ -96,9 +96,7 @@ func validateEpsilon(privUnit string, epsilon float64) bool {
 }
 
 // validation of delta value
-func validateDelta(delta float64) bool {
-	// if !math.IsInf(epsilon, 1) && !math.IsNaN(epsilon) && epsilon > 0 {
-		
+func validateDelta(delta float64) bool {		
 	// make sure that delta is a number and it isn't inf
 	if !math.IsInf(delta, 1) && !math.IsNaN(delta) {
 		// if it equals a valid delta, return true

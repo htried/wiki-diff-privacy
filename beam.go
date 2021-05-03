@@ -97,7 +97,9 @@ func main() {
 				for _, del := range wdp.Deltas {
 					for _, sens := range wdp.Sensitivities[kind] {
 						// cast them to a string as a key
-						key := strconv.Itoa(sens) + "|" + strconv.FormatFloat(eps, 'f', -1, 64) + "|" + strconv.FormatFloat(del, 'f', -1, 64)
+						key := strconv.Itoa(sens) + "|"
+						key += strconv.FormatFloat(eps, 'f', -1, 64) + "|"
+						key += strconv.FormatFloat(del, 'f', -1, 64)
 
 						// set up params that we will write to the output db
 						dpParams := dbParams{
@@ -198,8 +200,9 @@ func privateCountPageViews(s beam.Scope, col beam.PCollection, params dbParams) 
 	// privately count the number of times each page shows up in pageviews
 	// yields PrivatePCollection<string,int>
 	counted := pbeam.Count(s, pageviews, pbeam.CountParams{ // defaults to Laplace noise
-		MaxPartitionsContributed: 1, // In the scheme I've constructed, each visitor visits 1x per day (on user-level privacy, this would go to 5-10)
-		MaxValue:                 1, // And they can visit a maximum of 1 page
+		MaxPartitionsContributed: int64(params.Sensitivity), 	// In the scheme I've constructed, each visitor can visit
+																// 	up to sensitivity times per day,
+		MaxValue:                 1, 							// and can contribute a maximum of 1 visit per page
 	})
 
 	// create constants for params
