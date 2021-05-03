@@ -3,7 +3,6 @@
 package wdp
 
 import (
-	"log"
 	"math"
 	"net/http"
 	"strings"
@@ -25,24 +24,49 @@ import (
 // var LanguageCodes = []string{"gan", "km", "as", "so", "bo"}
 
 // list of wikipedias ranging in size from 5 million views/day to 20,000 views/day to illustrate effects of size
+var PrivacyUnits = []string{"pageview", "user"}
 var LanguageCodes = []string{"simple", "he", "uk", "km", "gan"}
+var LanguageMap = map[string]string{
+	"simple": 	"small",
+	"he":		"medium",
+	"uk": 		"medium",
+	"km": 		"small",
+	"gan":		"small",
+}
 
 // various configurations of epsilon and delta to compute the view count per page with
-var Epsilons = []float64{0.1, 0.5, 1, 5}
+var Epsilons = map[string][]float64{
+	"pageview": 	{float64(0.1), float64(1), float64(5)},
+	"user":			{float64(5), float64(10), float64(25)},
+}
 var Deltas = []float64{math.Pow10(-9), math.Pow10(-8), math.Pow10(-7), math.Pow10(-6)}
-
+var Sensitivities = map[string][]int{
+	"pageview": 	{1},
+	"user":			{5, 10},
+}
 
 type PageVars struct {
-	Lang 		string
-	Langs 		[]string
-	MinCount 	int 
-	Epsilon		float64
-	Epsilons 	[]float64
-	Delta		float64
-	Deltas		[]float64
-	Sensitivity int
-	Alpha 		float64
-	PropWithin 	float64
+	PrivUnit 		string
+	PrivUnits 		[]string
+	Lang 			string
+	Langs 			[]string
+	MinCount 		int 
+	Epsilon			float64
+	Epsilons 		map[string][]float64
+	Delta			float64
+	Deltas			[]float64
+	Sensitivity 	int
+	Sensitivities 	map[string][]int
+	Alpha 			float64
+	PropWithin 		float64
+}
+
+// validate the passed-in privacy unit
+func validatePrivUnit(privUnit string) bool {
+	if privUnit == "pageview" || privUnit == "user" {
+		return true
+	}
+	return false
 }
 
 // validation of query params and inputs
@@ -56,13 +80,13 @@ func validateLang(lang string) bool {
 }
 
 // validation of epsilon value
-func validateEpsilon(epsilon float64) bool {
+func validateEpsilon(privUnit string, epsilon float64) bool {
 	// if !math.IsInf(epsilon, 1) && !math.IsNaN(epsilon) && epsilon > 0 {
 
 	// make sure that epsilon is a number and it isn't inf
 	if !math.IsInf(epsilon, 1) && !math.IsNaN(epsilon) {
 		// if it equals a valid epsilon, return true
-		for _, e := range Epsilons {
+		for _, e := range Epsilons[privUnit] {
 			if e == epsilon {
 				return true
 			}
@@ -72,27 +96,29 @@ func validateEpsilon(epsilon float64) bool {
 }
 
 // validation of delta value
-func validateDelta(delta float64) bool {
-	// if !math.IsInf(epsilon, 1) && !math.IsNaN(epsilon) && epsilon > 0 {
-		
+func validateDelta(delta float64) bool {		
 	// make sure that delta is a number and it isn't inf
 	if !math.IsInf(delta, 1) && !math.IsNaN(delta) {
 		// if it equals a valid delta, return true
 		for _, d := range Deltas {
 			if d == delta {
-				log.Print("delta validated")
 				return true
 			}
 		}
 	}
-	log.Print("delta not validated")
 	return false
 }
 
 // validation of sensitivity value
-func validateSensitivity(sensitivity int) bool {
-	if !math.IsInf(float64(sensitivity), 1) && !math.IsNaN(float64(sensitivity)) && sensitivity > 0 {
-		return true
+func validateSensitivity(privUnit string, sensitivity int) bool {
+	// make sure that epsilon is a number and it isn't inf
+	if !math.IsInf(float64(sensitivity), 1) && !math.IsNaN(float64(sensitivity)) {
+		// if it equals a valid epsilon, return true
+		for _, s := range Sensitivities[privUnit] {
+			if s == sensitivity {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -125,16 +151,28 @@ func validatePropWithin(propWithin float64) bool {
 func ValidateApiArgs(r *http.Request) (PageVars, error) {
 	request := r.URL.Query()
 
-	var pvs = PageVars{Lang:			"simple",
-					   Langs: 			LanguageCodes,
-					   MinCount: 		int(0),
-					   Epsilon: 		float64(1),
-					   Epsilons: 		Epsilons,
-					   Delta: 			float64(0.000001),
-					   Deltas: 			Deltas,
-					   Sensitivity: 	int(1),
-					   Alpha: 			float64(0.5),
-					   PropWithin: 		float64(0.25)}
+
+	var pvs = PageVars{
+		PrivUnit:		"pageview",
+		PrivUnits: 		PrivacyUnits,
+		Lang:			"simple",
+		Langs: 			LanguageCodes,
+		MinCount: 		int(0),
+		Epsilon: 		float64(1),
+		Epsilons: 		Epsilons,
+		Delta: 			float64(0.000001),
+		Deltas: 		Deltas,
+		Sensitivity: 	int(1),
+		Sensitivities: 	Sensitivities,
+		Alpha: 			float64(0.5),
+		PropWithin: 	float64(0.25),
+	}
+
+	if _, ok := request["privunit"]; ok {
+		if validatePrivUnit(strings.ToLower(request["privunit"][0])) {
+			pvs.PrivUnit = strings.ToLower(request["privunit"][0])
+		}
+	}
 
 	if _, ok := request["lang"]; ok {
 		if validateLang(strings.ToLower(request["lang"][0])) {
@@ -158,7 +196,7 @@ func ValidateApiArgs(r *http.Request) (PageVars, error) {
 		if err != nil {
 			return pvs, err
 		}
-		if validateEpsilon(f) {
+		if validateEpsilon(pvs.PrivUnit, f) {
 			pvs.Epsilon = f
 		}
 	}
@@ -178,7 +216,7 @@ func ValidateApiArgs(r *http.Request) (PageVars, error) {
 		if err != nil {
 			return pvs, err
 		}
-		if validateSensitivity(i) {
+		if validateSensitivity(pvs.PrivUnit, i) {
 			pvs.Sensitivity = i
 		}
 	}

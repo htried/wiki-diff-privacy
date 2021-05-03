@@ -45,7 +45,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	// parse the template at index.html
 	// NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
 	// t, err := template.ParseFiles("templates/index.html") // LOCAL
-	t, err := template.ParseFiles("/etc/diff-privacy-beam/index.html") // CLOUD VPS
+	t, err := template.ParseFiles("/etc/diff-privacy-beam/templates/index.html") // CLOUD VPS
 	if err != nil {
 		log.Print("error parsing template index_go.html: ", err)
 	}
@@ -71,7 +71,7 @@ func PageViews(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// query the database to get normalCount and dpCount
-	normalCount, dpCount, err := wdp.Query(db, vars.Lang, vars.Epsilon, vars.Delta)
+	normalCount, dpCount, err := wdp.Query(db, vars.Lang, vars.PrivUnit, vars.Epsilon, vars.Delta, vars.Sensitivity)
 	if err != nil {
 		log.Printf("error %v querying database\n", err)
 		return
@@ -112,6 +112,12 @@ func main() {
 
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/api/v1/pageviews", PageViews)
+
+	// NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
+	// fs := http.FileServer(http.Dir("./static"))
+	// http.Handle("/static/", http.StripPrefix("/static/", fs)) // LOCALLY
+	fs := http.FileServer(http.Dir("/etc/diff-privacy-beam/static/"))
+	http.Handle("/etc/diff-privacy-beam/static/", http.StripPrefix("/etc/diff-privacy-beam/static/", fs)) // CLOUD VPS
 
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }

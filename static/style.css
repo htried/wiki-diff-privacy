@@ -420,6 +420,10 @@ h6 {
 	width: 20%;
 }
 
+#tool_main .cols6 .col1 {
+	width: 16.6666%;
+}
+
 #tool_main form label {
 	display: block;
 }
