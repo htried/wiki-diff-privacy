@@ -38,6 +38,10 @@ mkdir -p ${TMP_PATH}
 mkdir -p ${SRV_PATH}/sock
 mkdir -p ${ETC_PATH}
 mkdir -p ${ETC_PATH}/resources
+mkdir -p ${ETC_PATH}/static
+mkdir -p ${ETC_PATH}/templates
+mkdir -p ${ETC_PATH}/data
+
 
 echo "Cloning repositories..."
 git clone ${GIT_CLONE_HTTPS} ${TMP_PATH}/${REPO_LBL}
