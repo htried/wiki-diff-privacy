@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	// "os"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 
