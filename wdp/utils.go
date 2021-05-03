@@ -123,7 +123,6 @@ func CreateOutputStruct(normalCount, dpCount []TableRow, vars PageVars) map[stri
 
 	// for each DP-altered article
 	for i, art := range dpCount {
-		// log.Print(art)
 		// add the DP rank, DP views, and whether or not you should aggregate
 		output[art.Name]["dp-rank"] = i + 1
 		output[art.Name]["dp-views"] = art.Views

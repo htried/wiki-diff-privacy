@@ -113,5 +113,8 @@ func main() {
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/api/v1/pageviews", PageViews)
 
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }

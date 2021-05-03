@@ -5,8 +5,8 @@
 	<title>Differential Privacy + Wikipedia Exploration</title>
 	<!-- <link href="/etc/diff-privacy-beam/favicon.ico" rel="shortcut icon"/>
 	<link href="/etc/diff-privacy-beam/style.css" rel="stylesheet" type="text/css"/> -->
-	<!-- <link href="../static/favicon.ico" rel="shortcut icon"/>
-	<link href="../static/style.css" rel="stylesheet" type="text/css"/> -->
+	<link href="./static/favicon.ico" rel="shortcut icon"/>
+	<link href="./static/style.css" rel="stylesheet" type="text/css"/>
 	<link href="https://tools-static.wmflabs.org/fontcdn/css?family=Merriweather:400,400italic,700,700italic&subset=latin" rel="stylesheet" type="text/css">
 	<link href='https://tools-static.wmflabs.org/fontcdn/css?family=Lato:400,400italic,700,700italic&subset=latin' rel='stylesheet' type='text/css'>
 	<link href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css">
@@ -60,55 +60,44 @@
 					<p>This tool fetches the top-viewed articles for a given wiki from yesterday. First you have the actual data -- i.e. accurate counts without any noise added. Then you have the data after differential privacy (DP) has been applied (specifically noise drawn from a <a href="https://www.cis.upenn.edu/~aaroth/Papers/privacybook.pdf#section.3.3">Laplace distribution</a>).</p>
 					<p>You can play around with the different hyperparameters to see how it affects the results. See <a href="https://research.fb.com/blog/2020/06/protecting-privacy-in-facebook-mobility-data-during-the-covid-19-response/">this Facebook blogpost</a> for a good worked example.</p>
 					<p><b>Language</b>: which Wikipedia language to query.</p>
-					<p><b>Epsilon (ε)</b>: privacy parameter. Default to 1 but the smaller you make it, the more privacy-preserving.</p>
-					<p><b>Delta (δ)</b>: the probability of information about the database accidentally being leaked. The smaller you make it, the less likely a leak is to happen. Ideally, the value should be less than the inverse of the size of the database.</p>
-					<p><b>Sensitivity</b>: the maximum amount that any individual can add to the result. For example, if this is daily user pageviews, 800 would be appropriate as IP+UA hashes that are associated with more than 800 pageviews in a day are labeled as "automated".</p>
+					<p><b>Privacy Unit</b>: which unit of privacy to use. Selecting "pageview" provides a guarantee that individual pageviews will be private, whereas "user" provides a guarantee that user sessions will be private. A user session is capped at 5 or 10 views/session, which encompasses a significant (80-99%) amount of traffic, depending on the cap and the size of the wiki.</p>
+					<p><b>Epsilon (ε)</b>: privacy parameter. Default to 1 or 5 depending on the privacy unit. The smaller you make it, the more privacy-preserving the differential privacy mechanism is.</p>
+					<p><b>Delta (δ)</b>: the probability of information about the database accidentally being leaked. The smaller you make it, the less likely a leak is to happen. Ideally, the value should be less than the inverse of a polynomial in the size of the database.</p>
+					<p><b>Sensitivity</b>: the maximum amount that any individual can add to the result. With pageview-level privacy, this defaults to 1, as the maximum difference between two adjacent databases is 1 pageview. With user-level privacy, this can be set either 5 or 10, to simulate two thresholds for "adjacent" databases.</p>
 				</section>
 				<section class="form">
-					<form action="#diff-privacy">
-						<div class="cols cols5">
-							<div class="col col1">
-								<label class="placeholder"><span class="field_name">Language code*</span>
-									<select id="lang" name="lang">
-										{{ range $i, $lang := .Langs }}
-											<option value="{{$lang}}">{{$lang}}</option>
-										{{ end }}
-									</select>
-								</label>
-							</div>
-							<div class="col col1">
-								<label class="placeholder"><span class="field_name">Epsilon*</span>
-									<select id="eps" name="eps">
-										{{ range $i, $eps := .Epsilons }}
-											<option value="{{$eps}}">{{$eps}}</option>
-										{{ end }}
-									</select>
-								</label>
-							</div>
-							<div class="col col1">
-								<label class="placeholder"><span class="field_name">Delta*</span>
-									<select id="delta" name="delta">
-										{{ range $i, $del := .Deltas }}
-											<option value="{{$del}}">{{$del}}</option>
-										{{ end }}
-									</select>
-								</label>
-							</div>
-							<div class="col col1">
-								{{ if .Sensitivity }}
-								<label class="placeholder"><span class="field_name">Sensitivity*</span>
-									<input type="text" value="{{ .Sensitivity }}" placeholder="Placeholder text" id="sensitivity"/>
-								</label>
-								{{ else }}
-								<label class="placeholder"><span class="field_name">Sensitivity*</span>
-									<input type="text" value="" placeholder="Placeholder text" id="sensitivity"/>
-								</label>
+					<form action="#diff-privacy" id="apiForm">
+						<div>
+							<label for="lang">Language code</label>
+							<select id="lang" name="lang" class="col col5">
+								{{ range $i, $lang := .Langs }}
+									<option value="{{$lang}}">{{$lang}}</option>
 								{{ end }}
-							</div>
-							<div class="col col1">
-								<span class="field_name"></span>
-								<input type="submit" value="Submit" id="btnSubmit" />
-							</div>
+							</select>
+							<label for="privunit">Privacy Unit</label>
+							<select id="privunit" name="privunit" class="col col5">
+								{{ range $i, $privunit := .PrivUnits }}
+									<option value="{{$privunit}}">{{$privunit}}</option>
+								{{ end }}
+							</select>
+
+							<label for="eps">Epsilon</label>
+							<select id="eps" name="eps" class="col col5">
+								<!-- dynamically filled by js -->
+							</select>
+							<label for="delta">Delta</label>
+							<select id="delta" name="delta" class="col col5">
+								{{ range $i, $del := .Deltas }}
+									<option value="{{$del}}">{{$del}}</option>
+								{{ end }}
+							</select>
+
+							<label for="sensitivity">Sensitivity</label>
+							<select id="sensitivity" name="sensitivity" class="col col5">
+								<!-- dynamically filled by js -->
+							</select>
+							<br>
+							<input type="submit" value="Submit" id="btnSubmit" />
 						</div>
 					</form>
 				</section>
@@ -132,6 +121,147 @@
 
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+	<!-- functionality to dynamically update dropdowns based on the selected privacy unit -->
+	<script type="text/javascript">
+	// to remove fn's from global namespace
+	(function() {
+	    
+	// removes all option elements in select list 
+	// removeGrp (optional) boolean to remove optgroups
+	function removeAllOptions(sel, removeGrp) {
+	    var len, groups, par;
+	    if (removeGrp) {
+	        groups = sel.getElementsByTagName('optgroup');
+	        len = groups.length;
+	        for (var i=len; i; i--) {
+	            sel.removeChild( groups[i-1] );
+	        }
+	    }
+	    
+	    len = sel.options.length;
+	    for (var i=len; i; i--) {
+	        par = sel.options[i-1].parentNode;
+	        par.removeChild( sel.options[i-1] );
+	    }
+	}
+
+	function appendDataToSelect(sel, obj) {
+	    var f = document.createDocumentFragment();
+	    var labels = [], group, opts;
+	    
+	    function addOptions(obj) {
+	        var f = document.createDocumentFragment();
+	        var o;
+	        
+	        for (var i=0, len=obj.text.length; i<len; i++) {
+	            o = document.createElement('option');
+	            o.appendChild( document.createTextNode( obj.text[i] ) );
+	            
+	            if ( obj.value ) {
+	                o.value = obj.value[i];
+	            }
+	            
+	            f.appendChild(o);
+	        }
+	        return f;
+	    }
+	    
+	    if ( obj.text ) {
+	        opts = addOptions(obj);
+	        f.appendChild(opts);
+	    } else {
+	        for ( var prop in obj ) {
+	            if ( obj.hasOwnProperty(prop) ) {
+	                labels.push(prop);
+	            }
+	        }
+	        
+	        for (var i=0, len=labels.length; i<len; i++) {
+	            group = document.createElement('optgroup');
+	            group.label = labels[i];
+	            f.appendChild(group);
+	            opts = addOptions(obj[ labels[i] ] );
+	            group.appendChild(opts);
+	        }
+	    }
+	    sel.appendChild(f);
+	}
+
+	// anonymous function assigned to onchange event of controlling select list
+	document.forms['apiForm'].elements['privunit'].onchange = function(e) {
+
+		var choices = ['eps', 'sensitivity']
+		choices.forEach(choice => {
+			// name of associated select list
+		    var relName = choice;
+		    
+		    // reference to associated select list 
+		    var relList = this.form.elements[ relName ];
+		    
+		    // get data from object literal based on selection in controlling select list (this.value)
+		    var obj = Select_List_Data[ relName ][ this.value ];
+		    
+		    // remove current option elements
+		    removeAllOptions(relList, true);
+		    
+		    // call function to add optgroup/option elements
+		    // pass reference to associated select list and data for new options
+		    appendDataToSelect(relList, obj);
+		})
+	};
+
+	var epsilon_arrs = {{ .Epsilons }};
+	var sensitivity_arrs = {{ .Sensitivities }};
+
+	// object literal holds data for optgroup/option elements
+	var Select_List_Data = {
+	    
+	    'eps': { // name of associated select list
+	        
+	        // names match option values in controlling select list
+	        pageview: {
+	            text: epsilon_arrs['pageview'],
+	            value: epsilon_arrs['pageview']
+	        },
+	        user: {
+	            text: epsilon_arrs['user'],
+	            value: epsilon_arrs['user']
+	        },
+	    },
+	    'sensitivity': { // name of associated select list
+	        
+	        // names match option values in controlling select list
+	        pageview: {
+	            text: sensitivity_arrs['pageview'],
+	            value: sensitivity_arrs['pageview']
+	        },
+	        user: {
+	            text: sensitivity_arrs['user'],
+	            value: sensitivity_arrs['user']
+	        },
+	    }
+	};
+
+	var form = document.forms['apiForm'];
+	var sel = form.elements['privunit'];
+	sel.selectedIndex = 0;
+
+	var choices = ['eps', 'sensitivity'];
+	choices.forEach(choice => {
+		// name of associated select list
+	    var rel = form.elements[choice];
+	    
+	    // get data from object literal based on selection in controlling select list (this.value)
+	    var data = Select_List_Data[ choice ][ sel.value ];
+
+	    // call function to add optgroup/option elements
+	    // pass reference to associated select list and data for new options
+	    appendDataToSelect(rel, data);
+	});
+
+	}());
+	</script>
+
 	<script type="text/javascript">
 		$(document).ready(function() {
 			$('form label.placeholder').each(function() {

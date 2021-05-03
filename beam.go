@@ -89,8 +89,8 @@ func main() {
 		normalCount := countPageViews(s, filtered, normalParams)
 
 		// for each (epsilon, delta) tuple
-		for _, eps := range wdp.Epsilons {
-			for _, del := range wdp.Deltas {
+		for _, eps := range wdp.Epsilons["pageviews"] {
+			for _, del := range wdp.Deltas["pageviews"] {
 				// cast them to a string as a key
 				key := strconv.FormatFloat(eps, 'f', -1, 64) + "|" + strconv.FormatFloat(del, 'f', -1, 64)
 

@@ -138,7 +138,7 @@ func CreateTable(db *sql.DB, tbl_name string) error {
     if tbl_name == "data" {
         query = `CREATE TABLE IF NOT EXISTS data(pv_id INT PRIMARY KEY AUTO_INCREMENT, user_id TEXT, day DATE, lang TEXT, name TEXT)`
     } else if tbl_name == "output" {
-        query = `CREATE TABLE IF NOT EXISTS output(Name TEXT, Views INT, Lang TEXT, Day DATE, Kind TEXT, Epsilon FLOAT, Delta FLOAT)`
+        query = `CREATE TABLE IF NOT EXISTS output(Name TEXT, Views INT, Lang TEXT, Day DATE, Kind TEXT, Epsilon FLOAT, Delta FLOAT, Sensitivity INT)`
     } else {
         return fmt.Errorf("input to create table was not properly formated: %s", tbl_name)
     }
@@ -414,6 +414,7 @@ func initUsers(wikisize string, viewsize int) ([]string, error) {
 
 // returns a randomly generated n-character UID
 func generateUID(n int) string {
+    rand.Seed(time.Now().Unix())
     b := make([]rune, n)
     for i := range b {
         b[i] = letters[rand.Intn(len(letters))]
