@@ -57,6 +57,7 @@ chown -R www-data:www-data ${SRV_PATH}
 echo "Copying static files..." # copies static assets to /etc/ where they'll be accessible
 cp ${TMP_PATH}/${REPO_LBL}/static/* ${ETC_PATH}/static
 cp ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}/templates
+cp ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}/data
 
 echo "Copying configuration files..."
 cp ${TMP_PATH}/${REPO_LBL}/config/* ${ETC_PATH}

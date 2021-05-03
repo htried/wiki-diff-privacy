@@ -27,8 +27,8 @@ var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 // gets the DSN based on an input string
 func DSN(dbName string) (string, error) {
     // NOTE: SWITCH WHICH OF THESE STATEMENTS IS COMMENTED OUT TO RUN ON CLOUD VPS VS LOCALLY
-    f, err := os.Open("/Users/haltriedman/replica.my.cnf") // LOCAL
-    // f, err := os.Open("/home/htriedman/replica.my.cnf") // CLOUD VPS
+    // f, err := os.Open("/Users/haltriedman/replica.my.cnf") // LOCAL
+    f, err := os.Open("/home/htriedman/replica.my.cnf") // CLOUD VPS
     defer f.Close()
     if err != nil {
         fmt.Printf("Error %s when opening replica file", err)
@@ -357,8 +357,9 @@ func initUsers(wikisize string, viewsize int) ([]string, error) {
     var output []string
 
     // read in the size of the wiki as a csv
-    f, err := os.Open(fmt.Sprintf("data/%swikis.csv", wikisize)) // NOTE: NEED TO ESTABLISH EXPLICIT PATH FOR THIS ON CLOUD VPS
-                                                                //  AND CHANGE SHELL COMMANDS TO COPY CSVS TO THAT PATH
+    // NOTE: SWITCH THESE TO RUN LOCALLY VS CLOUD VPS
+    // f, err := os.Open(fmt.Sprintf("data/%swikis.csv", wikisize)) // LOCAL
+    f, err := os.Open(fmt.Sprintf("/etc/diff-privacy-beam/data/%swikis.csv", wikisize)) // CLOUD VPS
     if err != nil {
         log.Printf("Error %s opening csv", err)
         return output, err
