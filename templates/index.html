@@ -304,8 +304,11 @@
 			}
 			else {
 				var table_data = [];
+				var total_pviews = 0;
+				var total_dp_pviews = 0;
+				var total_dp_diff = 0;
 				var table_html = '<table id="results-table">';
-				table_html += '<thead><tr><th>Article</th><th>Actual Pviews</th><th>Actual Rank</th><th>DP Pviews</th><th>DP Rank</th><th>Pviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
+				table_html += '<thead><tr><th>Article</th><th>Actual Pageviews</th><th>Actual Rank</th><th>DP Pageviews</th><th>DP Rank</th><th>Pageviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
 				table_html += '</table>';
 				$("#results").append(table_html);
 				for (var article in data["results"]) {
@@ -315,32 +318,45 @@
 					} else {
 						row['Article'] = '<a href="https://' + document.getElementById('lang').value + '.wikipedia.org/wiki/' + article + '">' + article.replaceAll('_', ' ') + "</a>";
 					}
-					row['Actual Pviews'] = data["results"][article]["gt-views"];
+					row['Actual Pageviews'] = data["results"][article]["gt-views"];
+					total_pviews += row['Actual Pageviews'];
 					row['Actual Rank'] = data["results"][article]["gt-rank"];
 
 					if ( data["results"][article]["dp-views"] == -1) {
-						row['DP Pviews'] = "No data";
+						row['DP Pageviews'] = "No data";
 						row['DP Rank'] = "No data";
-						row['Pviews Diff'] = "No data";
+						row['Pageviews Diff'] = "No data";
 						row['Rank Diff'] = "No data";
 						row['Aggregate?'] = 1;
 					} else {
-						row['DP Pviews'] = data["results"][article]["dp-views"];
+						row['DP Pageviews'] = data["results"][article]["dp-views"];
+						total_dp_pviews += data["results"][article]["dp-views"];
 						row['DP Rank'] = data["results"][article]["dp-rank"];
-						row['Pviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
+						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
+						total_dp_diff += row['Pageviews Diff']
 						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
 						row['Aggregate?'] = data["results"][article]["do-aggregate"];
 					}
 					table_data.push(row);
 				}
+				table_data.push({
+					'Article': 'Total',
+					'Actual Pageviews': total_pviews,
+					'Actual Rank': '-',
+					'DP Pageviews': total_dp_pviews,
+					'DP Rank': '-',
+					'Pageviews Diff': total_dp_diff,
+					'Rank Diff': '-',
+					'Aggregate?': 0,
+				})
 				$('#results-table').DataTable( {
 					"data": table_data,
 					"columns": [{'data': "Article"},
-								{'data': "Actual Pviews"},
+								{'data': "Actual Pageviews"},
 								{'data': "Actual Rank"},
-								{'data': "DP Pviews"},
+								{'data': "DP Pageviews"},
 								{'data': "DP Rank"},
-								{'data': "Pviews Diff"},
+								{'data': "Pageviews Diff"},
 								{'data': "Rank Diff"},
 								{'data': "Aggregate?", "visible": false}
 								],
