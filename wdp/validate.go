@@ -36,13 +36,13 @@ var LanguageMap = map[string]string{
 
 // various configurations of epsilon and delta to compute the view count per page with
 var Epsilons = map[string][]float64{
-	"pageview": 	{float64(0.1), float64(1), float64(5)},
-	"user":			{float64(5), float64(10), float64(25)},
+	"pageview": 	{float64(0.1), float64(0.5), float64(1), float64(2)},
+	"user":			{float64(0.1), float64(0.5), float64(1), float64(2)},
 }
-var Deltas = []float64{math.Pow10(-9), math.Pow10(-8)}
+var Deltas = []float64{math.Pow10(-9)}
 var Sensitivities = map[string][]int{
 	"pageview": 	{1},
-	"user":			{5, 10},
+	"user":			{1, 5, 10},
 }
 
 type PageVars struct {
