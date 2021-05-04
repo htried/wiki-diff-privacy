@@ -93,14 +93,15 @@ func main() {
 		// for the different kinds of privacy units
 		for _, kind := range wdp.PrivacyUnits {
 			log.Printf("SWITCHING TO PRIVACY UNIT: %s\n", kind)
-			log.Printf("Epsilons for privacy unit %s: %s\n", wdp.Epsilons[kind])
-			log.Printf("Sensitivities for privacy unit %s: %s\n", wdp.Sensitivities[kind])
+			log.Printf("Epsilons for privacy unit %s: %v\n", kind, wdp.Epsilons[kind])
+			log.Printf("Sensitivities for privacy unit %s: %v\n", kind, wdp.Sensitivities[kind])
 			// for each (epsilon, delta, sensitivity) tuple
 			for _, eps := range wdp.Epsilons[kind] {
 				for _, del := range wdp.Deltas {
 					for _, sens := range wdp.Sensitivities[kind] {
 						// cast them to a string as a key
-						key := strconv.Itoa(sens) + "|"
+						key := kind
+						key += strconv.Itoa(sens) + "|"
 						key += strconv.FormatFloat(eps, 'f', -1, 64) + "|"
 						key += strconv.FormatFloat(del, 'f', -1, 64)
 
