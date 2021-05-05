@@ -3,6 +3,12 @@
 APP_LBL='diff-privacy-beam'
 ETC_PATH="/etc/${APP_LBL}"  # app config info, scripts, ML models, etc.
 
+echo "setting resource limits for cron"
+ulimit -e 0
+ulimit -i 31854
+ulimit -p 8
+ulimit -q 819200
+
 echo "initializing languages in databases"
 ${ETC_PATH}/resources/init_db
 
