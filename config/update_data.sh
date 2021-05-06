@@ -12,8 +12,11 @@ ulimit -q 819200
 echo "initializing languages in databases"
 ${ETC_PATH}/resources/init_db
 
+echo "getting rid of old synthetic data"
+${ETC_PATH}/resources/init_db data
+
 echo "conducting private and public counts of entries in database using apache beam"
 ${ETC_PATH}/resources/beam
 
-echo "cleaning up old db resources"
-${ETC_PATH}/resources/clean_db
+echo "getting rid of old days of output counts"
+${ETC_PATH}/resources/clean_db output
