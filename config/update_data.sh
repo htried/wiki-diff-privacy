@@ -13,7 +13,7 @@ echo "initializing languages in databases"
 ${ETC_PATH}/resources/init_db
 
 echo "getting rid of old synthetic data"
-${ETC_PATH}/resources/init_db data
+${ETC_PATH}/resources/clean_db data
 
 echo "conducting private and public counts of entries in database using apache beam"
 ${ETC_PATH}/resources/beam

@@ -333,12 +333,14 @@
 						total_dp_pviews += data["results"][article]["dp-views"];
 						row['DP Rank'] = data["results"][article]["dp-rank"];
 						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
-						total_dp_diff += row['Pageviews Diff']
 						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
 						row['Aggregate?'] = data["results"][article]["do-aggregate"];
 					}
 					table_data.push(row);
 				}
+
+				total_dp_diff = total_dp_pviews - total_pviews;
+
 				table_data.push({
 					'Article': 'Total',
 					'Actual Pageviews': total_pviews,
