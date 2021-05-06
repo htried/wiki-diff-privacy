@@ -8,6 +8,7 @@ import (
 	"github.com/htried/wiki-diff-privacy/wdp"
 	"log"
 	"time"
+	"os"
 )
 
 func main() {
@@ -22,21 +23,17 @@ func main() {
 	log.Printf("Successfully connected to database")
 
 	var yesterday = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-	log.Printf(yesterday)
 
-	// drop old synthetic data from before yesterday
-	err = wdp.DropOldData(db, "data", yesterday)
+	if os.Args[1] != "data" && os.Args[1] != "output" {
+		log.Printf("Error: incorrect database specified")
+		return
+	}
+
+	err = wdp.DropOldData(db, os.Args[1], yesterday)
 	if err != nil {
 		log.Printf("Error %s when dropping synthetic data", err)
 		return
 	}
 
-	// drop old output data from previous days
-	err = wdp.DropOldData(db, "output", yesterday)
-	if err != nil {
-		log.Printf("Error %s when dropping synthetic data", err)
-		return
-	}
-
-	log.Printf("Time to clean up all databases: %v seconds\n", time.Now().Sub(start).Seconds())
+	log.Printf("Time to clean up database %s: %v seconds\n", os.Args[1], time.Now().Sub(start).Seconds())
 }
