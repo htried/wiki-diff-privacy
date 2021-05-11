@@ -128,6 +128,7 @@
 
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+	<script src="https://d3js.org/d3.v5.min.js"></script>
 	<!-- functionality to dynamically update dropdowns based on the selected privacy unit -->
 	<script type="text/javascript">
 	// to remove fn's from global namespace
@@ -295,10 +296,15 @@
 
 		var render_results = function(data) {
 			$("#results").empty();
-			console.log(data["results"])
-			$("#results").append("<br><p>Explanation for epsilon=" + document.getElementById('eps').value + ": if someone was uncertain that a given individual's pageviews were included in this data (50% probability), they could be at most " + Number(Math.round((100 * data['params']['qual-eps']) + 'e2') + 'e-2') + "% certain after viewing data generated under these parameters (assuming the sensitivity is correct). Broadly speaking, epsilon is a value that provides a ceiling on how much the likelihood of single output (in this case, a particular configuration of pageview counts) could increase if a single entry were added or removed from the database.</p>");
+
+			$("#results").append("<br><p>Explanation for epsilon=" + document.getElementById('eps').value + ": Broadly speaking, epsilon is a value that provides a ceiling on how much the likelihood of single output (in this case, a particular configuration of pageview counts) could increase if a single entry were added or removed from the database.</p>");
+			$("#results").append("<div id='container'><svg /></div>")
+			$("#results").append("<p>If someone was totally uncertain that a given individual's pageviews were included in this data (50% probability), they could be at most " + Number(Math.round((100 * data['params']['qual-eps']) + 'e2') + 'e-2') + "% certain after viewing data generated under these parameters.</p>");
 			$("#results").append("<p>Explanation for delta=" + document.getElementById('delta').value + ": delta is the probability of information being accidentally leaked. If delta=0, any output of this database is going to be negligibly different (to the scale of epsilon) from an adjacent database (i.e. with one entry added or removed). If delta is non-zero, it ensures that for all databases X and Y, the absolute privacy loss of a calculation M() will be less than or equal to epsilon with a probability of 1 - delta. If delta is non-zero, we want its value to be smaller than the inverse of any polynomial in the size of the database X (i.e. delta < 1 / ||X||).</p>");
 			$("#results").append("<p>Rows that are <span class='below-threshold'>greyed out</span> have less than a " + 100 * data['params']['alpha'] + "% chance of being within " + 100 * data['params']['prop-within'] + "% of the actual value and are too noisy to be valuable, or else the differentially private count added noise that put them below 0, so they have no data. With a sensitivity of " + data['params']['sensitivity'] + " and epsilon of " + data['params']['eps'] + ", the minimum DP views has to be " + data['params']['aggregate-threshold'] + ".</p>");
+
+
+
 			if ("Error" in data) {
 				$("#results").append("<br><p>Error: " + data["Error"] + "</p>");
 			}
@@ -390,6 +396,127 @@
 				  );
 	    }
 	</script>
+	<script type="text/javascript">
+	const probs = [
+      {
+        epsilon: 'Prior',
+        value: 50.0,
+      },
+      {
+        epsilon: '0.1',
+        value: 52.5,
+      },
+      {
+        epsilon: '0.5',
+        value: 62.25,
+      },
+      {
+        epsilon: '1',
+        value: 73.11,
+      },
+      {
+        epsilon: '2',
+        value: 88.08,
+      }
+    ];
+
+    const svg = d3.select('svg');
+    const svgContainer = d3.select('#container');
+    const selected = {{ .Epsilon }};
+    
+    const margin = 80;
+    const width = 1000 - 2 * margin;
+    const height = 600 - 2 * margin;
+
+    const chart = svg.append('g')
+      .attr('transform', `translate(${margin}, ${margin})`);
+
+    const xScale = d3.scaleBand()
+      .range([0, width])
+      .domain(sample.map((s) => s.epsilon))
+      .padding(0.4)
+    
+    const yScale = d3.scaleLinear()
+      .range([height, 0])
+      .domain([0, 100]);
+
+    const makeYLines = () => d3.axisLeft()
+      .scale(yScale)
+
+    chart.append('g')
+      .attr('transform', `translate(0, ${height})`)
+      .call(d3.axisBottom(xScale));
+
+    chart.append('g')
+      .call(d3.axisLeft(yScale));
+
+    chart.append('g')
+      .attr('class', 'grid')
+      .call(makeYLines()
+        .tickSize(-width, 0, 0)
+        .tickFormat('')
+      )
+
+    const barGroups = chart.selectAll()
+      .data(probs)
+      .enter()
+      .append('g')
+
+    barGroups
+      .append('rect')
+      .attr('class', 'bar')
+      .attr('x', (g) => xScale(g.epsilon))
+      .attr('y', (g) => yScale(g.value))
+      .attr('height', (g) => height - yScale(g.value))
+      .attr('width', xScale.bandwidth())
+      .attr('fill', (g) => {
+      	if (g.epsilon === 'Prior') {
+        	return '#f03c57';
+        }
+        return '#80cbc4';
+      })
+      .attr('opacity', (g) => {
+      	if (g.epsilon === 'Prior' || g.epsilon === selected) {
+        	return 1;
+        }
+        return 0.4;
+      })
+
+    barGroups 
+      .append('text')
+      .attr('class', 'value')
+      .attr('x', (a) => xScale(a.epsilon) + xScale.bandwidth() / 2)
+      .attr('y', (a) => yScale(a.value) + 30)
+      .attr('text-anchor', 'middle')
+      .text((a) => {
+      	if (a.epsilon === 'Prior' || a.epsilon === selected) {
+      		return `${a.value}%`
+        }
+      })
+    
+    svg
+      .append('text')
+      .attr('class', 'label')
+      .attr('x', -(height / 2) - margin)
+      .attr('y', margin / 2.4)
+      .attr('transform', 'rotate(-90)')
+      .attr('text-anchor', 'middle')
+      .text('Certainty of presence/absence in the dataset')
+
+    svg.append('text')
+      .attr('class', 'label')
+      .attr('x', width / 2 + margin)
+      .attr('y', height + margin * 1.7)
+      .attr('text-anchor', 'middle')
+      .text('Values of epsilon')
+
+    svg.append('text')
+      .attr('class', 'title')
+      .attr('x', width / 2 + margin)
+      .attr('y', 40)
+      .attr('text-anchor', 'middle')
+      .text('How changing epsilon affects certainty about presence/absence of a value in the dataset')
+    </script>
 
 </body>
 
