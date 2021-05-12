@@ -329,11 +329,12 @@
 
 		    const svg = d3.select('svg');
 		    const svgContainer = d3.select('#container');
+		    const container = document.getElementById('container').getBoundingClientRect();
 		    const selected = document.getElementById('eps').value;
 		    
-		    const margin = .08 * svgContainer.offsetWidth;
-		    const width = svgContainer.offsetWidth - 2 * margin;
-		    const height = svgContainer.offsetHeight - 2 * margin;
+		    const margin = .08 * container.width;
+		    const width = container.width - 2 * margin;
+		    const height = container.height - 2 * margin;
 
 		    console.log(margin, width, height)
 
