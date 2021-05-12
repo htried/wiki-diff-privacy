@@ -838,15 +838,12 @@ body.js #tool_main form label.placeholder.off .field_name {
 
 /* svg stuff */
 
-div#layout {
-  text-align: center;
-}
-
 div#container {
   width: 1000px;
   height: 600px;
   margin: auto;
   background-color: #2F4A6D;
+  text-align: center;
 }
 
 svg {
