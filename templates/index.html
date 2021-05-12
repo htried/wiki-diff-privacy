@@ -490,6 +490,7 @@
 					if ( data["results"][article]["dp-views"] == -1) {
 						row['DP Pageviews'] = "No data";
 						row['DP Rank'] = "No data";
+						row['Min Users'] = "No data";
 						row['Pageviews Diff'] = "No data";
 						row['Rank Diff'] = "No data";
 						row['Aggregate?'] = 1;
@@ -498,9 +499,9 @@
 						total_dp_pviews += data["results"][article]["dp-views"];
 						row['DP Rank'] = data["results"][article]["dp-rank"];
 						if (document.getElementById("privunit").value === "pageview" || document.getElementById("sensitivity").value === '1') {
-							row['Min Users'] = "No data"
+							row['Min Users'] = "-";
 						} else {
-							row['Min Users'] = Math.round(data["results"][article]["dp-views"] / parseInt(document.getElementById("sensitivity").value))
+							row['Min Users'] = Math.round(data["results"][article]["dp-views"] / parseInt(document.getElementById("sensitivity").value));
 						}
 						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
 						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
