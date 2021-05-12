@@ -16,12 +16,12 @@ div#layout {
   text-align: center;
 }
 
-div#container {
+/*div#container {
   width: 1000px;
   height: 600px;
   margin: auto;
   background-color: #2F4A6D;
-}
+}*/
 
 svg {
   width: 100%;
