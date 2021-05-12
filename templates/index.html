@@ -473,7 +473,7 @@
 				var total_dp_pviews = 0;
 				var total_dp_diff = 0;
 				var table_html = '<table id="results-table">';
-				table_html += '<thead><tr><th>Article</th><th>Actual Pageviews</th><th>Actual Rank</th><th>DP Pageviews</th><th>DP Rank</th><th>Pageviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
+				table_html += '<thead><tr><th>Article</th><th>Actual Pageviews</th><th>Actual Rank</th><th>DP Pageviews</th><th>DP Rank</th><th>Minimum number of users</th><th>Pageviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
 				table_html += '</table>';
 				$("#results").append(table_html);
 				for (var article in data["results"]) {
@@ -497,6 +497,11 @@
 						row['DP Pageviews'] = data["results"][article]["dp-views"];
 						total_dp_pviews += data["results"][article]["dp-views"];
 						row['DP Rank'] = data["results"][article]["dp-rank"];
+						if (document.getElementById("privunit").value === "pageview" || document.getElementById("sensitivity") === '1') {
+							row['Min Users'] = "No data"
+						} else {
+							row['Min Users'] = data["results"][article]["dp-views"] / parseInt(document.getElementById("sensitivity").value)
+						}
 						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
 						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
 						row['Aggregate?'] = data["results"][article]["do-aggregate"];
@@ -512,6 +517,7 @@
 					'Actual Rank': '-',
 					'DP Pageviews': total_dp_pviews,
 					'DP Rank': '-',
+					'Min Users': '-'
 					'Pageviews Diff': total_dp_diff,
 					'Rank Diff': '-',
 					'Aggregate?': 0,
@@ -523,6 +529,7 @@
 								{'data': "Actual Rank"},
 								{'data': "DP Pageviews"},
 								{'data': "DP Rank"},
+								{'data': "Min Users"},
 								{'data': "Pageviews Diff"},
 								{'data': "Rank Diff"},
 								{'data': "Aggregate?", "visible": false}
