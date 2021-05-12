@@ -850,8 +850,10 @@ div#container {
 }
 
 svg {
-  width: 100%;
-  height: 100%;
+  width: 1000px;
+  height: 600px;
+  /*width: 100%;*/
+  /*height: 100%;*/
 }
 
 text {
