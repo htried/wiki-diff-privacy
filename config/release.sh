@@ -24,18 +24,18 @@ cd ${TMP_PATH}/${REPO_LBL}
 cd
 
 echo "Copying static files..."
-cp ${TMP_PATH}/${REPO_LBL}/static/* ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}
-cp ${TMP_PATH}/${REPO_LBL}/data/* ${ETC_PATH}
+cp -u ${TMP_PATH}/${REPO_LBL}/static/* ${ETC_PATH}
+cp -u ${TMP_PATH}/${REPO_LBL}/templates/* ${ETC_PATH}
+cp -u ${TMP_PATH}/${REPO_LBL}/data/* ${ETC_PATH}
 
 echo "Copying configuration files..."
-cp ${TMP_PATH}/${REPO_LBL}/config/* ${ETC_PATH}
-cp ${ETC_PATH}/app.nginx /etc/nginx/sites-available/app
+cp -u ${TMP_PATH}/${REPO_LBL}/config/* ${ETC_PATH}
+cp -u ${ETC_PATH}/app.nginx /etc/nginx/sites-available/app
 if [[ -f "/etc/nginx/sites-enabled/app" ]]; then
     unlink /etc/nginx/sites-enabled/app
 fi
 ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-cp ${ETC_PATH}/app.service /etc/systemd/system/
+cp -u ${ETC_PATH}/app.service /etc/systemd/system/
 
 echo "Enabling and starting services..."
 systemctl enable app.service  # uwsgi starts when server starts up
