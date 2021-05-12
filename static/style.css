@@ -854,11 +854,11 @@ div#container {
 	text-align: center;
 }
 
-/*svg {
-	position: relative;
+svg {
+	/*position: relative;*/
 	width: 100%;
 	height: 100%;
-}*/
+}
 
 text {
 	font-size: 12px;

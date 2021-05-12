@@ -327,12 +327,48 @@
 				}
 		    ];
 
+		    function wrap(text, width) {
+			    text.each(function () {
+			        var text = d3.select(this),
+			            words = text.text().split(/\s+/).reverse(),
+			            word,
+			            line = [],
+			            lineNumber = 0,
+			            lineHeight = 1.1, // ems
+			            x = text.attr("x"),
+			            y = text.attr("y"),
+			            dy = 0, //parseFloat(text.attr("dy")),
+			            tspan = text.text(null)
+			                        .append("tspan")
+			                        .attr("x", x)
+			                        .attr("y", y)
+			                        .attr("dy", dy + "em");
+			        while (word = words.pop()) {
+			            line.push(word);
+			            tspan.text(line.join(" "));
+			            if (tspan.node().getComputedTextLength() > width) {
+			                line.pop();
+			                tspan.text(line.join(" "));
+			                line = [word];
+			                tspan = text.append("tspan")
+			                            .attr("x", x)
+			                            .attr("y", y)
+			                            .attr("dy", ++lineNumber * lineHeight + dy + "em")
+			                            .text(word);
+			            }
+			        }
+			    });
+			}
+
 		    const svg = d3.select('svg');
 		    const svgContainer = d3.select('#container');
 		    const container = document.getElementById('container').getBoundingClientRect();
 		    const selected = document.getElementById('eps').value;
 		    
-		    const margin = .08 * container.width;
+		    var margin = .08 * container.width;
+		    if (margin < 50) {
+		    	margin = 50
+		    }
 		    const width = container.width - 2 * margin;
 		    const height = container.height - 2 * margin;
 
@@ -426,6 +462,7 @@
 				.attr('y', 40)
 				.attr('text-anchor', 'middle')
 				.text('Changing epsilon affects certainty about presence/absence of a value')
+				.call(wrap, width)
 
 		    // render data table
 			if ("Error" in data) {
