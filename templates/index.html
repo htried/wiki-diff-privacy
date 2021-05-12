@@ -331,9 +331,9 @@
 		    const svgContainer = d3.select('#container');
 		    const selected = document.getElementById('eps').value;
 		    
-		    const margin = 80;
-		    const width = 1000 - 2 * margin;
-		    const height = 600 - 2 * margin;
+		    const margin = .08 * svgContainer.offsetWidth;
+		    const width = svgContainer.offsetWidth - 2 * margin;
+		    const height = svgContainer.offsetHeight - 2 * margin;
 
 		    const chart = svg.append('g')
 				.attr('transform', `translate(${margin}, ${margin})`);
