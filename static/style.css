@@ -12,12 +12,13 @@
 @import url(https: //tools-static.wmflabs.org/fontcdn/css?family=Merriweather:400,400italic,700,700italic&subset=latin,latin-ext);
 */
 
+div#layout {
+  text-align: center;
+}
+
 div#container {
-  width: 100%;
-  min-height: 200px;
-  height: 60%;
-  max-width: 1000px;
-  max-height: 600px;
+  width: 1000px;
+  height: 600px;
   margin: auto;
   background-color: #2F4A6D;
 }
