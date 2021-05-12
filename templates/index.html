@@ -108,6 +108,12 @@
 						</div>
 					</form>
 				</section>
+				<div id='layout'>
+				    <!-- <h2>Bar chart example</h2> -->
+				    <div id='container'>
+				      	<svg />
+				    </div>
+				</div>
 				<!-- Empty section to hold results -->
 				<section class="text" id="results">
 				</section>
@@ -297,13 +303,106 @@
 		var render_results = function(data) {
 			$("#results").empty();
 
-			$("#results").append("<br><p>Explanation for epsilon=" + document.getElementById('eps').value + ": Broadly speaking, epsilon is a value that provides a ceiling on how much the likelihood of single output (in this case, a particular configuration of pageview counts) could increase if a single entry were added or removed from the database.</p>");
-			$("#results").append("<div id='container'><svg /></div>")
-			$("#results").append("<p>If someone was totally uncertain that a given individual's pageviews were included in this data (50% probability), they could be at most " + Number(Math.round((100 * data['params']['qual-eps']) + 'e2') + 'e-2') + "% certain after viewing data generated under these parameters.</p>");
+			$("#results").append("<br><p>Explanation for epsilon=" + document.getElementById('eps').value + ": If someone was totally uncertain that a given individual's pageviews were included in this data (50% probability), they could be at most " + Number(Math.round((100 * data['params']['qual-eps']) + 'e2') + 'e-2') + "% certain after viewing data generated under these parameters. Broadly speaking, epsilon is a value that provides a ceiling on how much the likelihood of single output (in this case, a particular configuration of pageview counts) could increase if a single entry were added or removed from the database.</p>");
+			// $("#results").append("<div id='container'><svg /></div>")
+			// $("#results").append("<p></p>");
 			$("#results").append("<p>Explanation for delta=" + document.getElementById('delta').value + ": delta is the probability of information being accidentally leaked. If delta=0, any output of this database is going to be negligibly different (to the scale of epsilon) from an adjacent database (i.e. with one entry added or removed). If delta is non-zero, it ensures that for all databases X and Y, the absolute privacy loss of a calculation M() will be less than or equal to epsilon with a probability of 1 - delta. If delta is non-zero, we want its value to be smaller than the inverse of any polynomial in the size of the database X (i.e. delta < 1 / ||X||).</p>");
 			$("#results").append("<p>Rows that are <span class='below-threshold'>greyed out</span> have less than a " + 100 * data['params']['alpha'] + "% chance of being within " + 100 * data['params']['prop-within'] + "% of the actual value and are too noisy to be valuable, or else the differentially private count added noise that put them below 0, so they have no data. With a sensitivity of " + data['params']['sensitivity'] + " and epsilon of " + data['params']['eps'] + ", the minimum DP views has to be " + data['params']['aggregate-threshold'] + ".</p>");
 
-			const probs = [
+			if ("Error" in data) {
+				$("#results").append("<br><p>Error: " + data["Error"] + "</p>");
+			}
+			else {
+				var table_data = [];
+				var total_pviews = 0;
+				var total_dp_pviews = 0;
+				var total_dp_diff = 0;
+				var table_html = '<table id="results-table">';
+				table_html += '<thead><tr><th>Article</th><th>Actual Pageviews</th><th>Actual Rank</th><th>DP Pageviews</th><th>DP Rank</th><th>Pageviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
+				table_html += '</table>';
+				$("#results").append(table_html);
+				for (var article in data["results"]) {
+					var row = {};
+					if (article.length > 48) {
+						row['Article'] = '<a href="https://' + document.getElementById('lang').value + '.wikipedia.org/wiki/' + article + '">' + article.substring(0, 45).replaceAll('_', ' ') + "...</a>";
+					} else {
+						row['Article'] = '<a href="https://' + document.getElementById('lang').value + '.wikipedia.org/wiki/' + article + '">' + article.replaceAll('_', ' ') + "</a>";
+					}
+					row['Actual Pageviews'] = data["results"][article]["gt-views"];
+					total_pviews += row['Actual Pageviews'];
+					row['Actual Rank'] = data["results"][article]["gt-rank"];
+
+					if ( data["results"][article]["dp-views"] == -1) {
+						row['DP Pageviews'] = "No data";
+						row['DP Rank'] = "No data";
+						row['Pageviews Diff'] = "No data";
+						row['Rank Diff'] = "No data";
+						row['Aggregate?'] = 1;
+					} else {
+						row['DP Pageviews'] = data["results"][article]["dp-views"];
+						total_dp_pviews += data["results"][article]["dp-views"];
+						row['DP Rank'] = data["results"][article]["dp-rank"];
+						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
+						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
+						row['Aggregate?'] = data["results"][article]["do-aggregate"];
+					}
+					table_data.push(row);
+				}
+
+				total_dp_diff = total_dp_pviews - total_pviews;
+
+				table_data.push({
+					'Article': 'Total',
+					'Actual Pageviews': total_pviews,
+					'Actual Rank': '-',
+					'DP Pageviews': total_dp_pviews,
+					'DP Rank': '-',
+					'Pageviews Diff': total_dp_diff,
+					'Rank Diff': '-',
+					'Aggregate?': 0,
+				})
+				$('#results-table').DataTable( {
+					"data": table_data,
+					"columns": [{'data': "Article"},
+								{'data': "Actual Pageviews"},
+								{'data': "Actual Rank"},
+								{'data': "DP Pageviews"},
+								{'data': "DP Rank"},
+								{'data': "Pageviews Diff"},
+								{'data': "Rank Diff"},
+								{'data': "Aggregate?", "visible": false}
+								],
+					"searching": false,
+					"scrollY": "600px",
+					"paging": false,
+					"order": [1, 'desc'],
+					"createdRow": function(row, data, dataIndex) {
+						if ( data['Aggregate?'] == 1) {
+							$(row).addClass('below-threshold');
+						}
+					}
+				} );
+			}
+		}
+
+		function queryDiffPrivate() {
+			// NOTE: SWITCH BETWEEN RUNNING LOCALLY AND ON CLOUD VPS
+
+			// LOCAL
+			// var queryUrl = "http://127.0.0.1:8000/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
+
+			// CLOUD VPS
+			var queryUrl = "https://diff-privacy-beam.wmcloud.org/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
+
+			$.ajax(queryUrl, {success: render_results.bind(this),
+							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)}
+							  }
+				  );
+	    }
+	</script>
+
+	<script type="text/javascript">
+		const probs = [
 		      {
 		        epsilon: 'Prior',
 		        value: 50.0,
@@ -422,97 +521,6 @@
 		      .attr('y', 40)
 		      .attr('text-anchor', 'middle')
 		      .text('How changing epsilon affects certainty about presence/absence of a value in the dataset')
-
-			if ("Error" in data) {
-				$("#results").append("<br><p>Error: " + data["Error"] + "</p>");
-			}
-			else {
-				var table_data = [];
-				var total_pviews = 0;
-				var total_dp_pviews = 0;
-				var total_dp_diff = 0;
-				var table_html = '<table id="results-table">';
-				table_html += '<thead><tr><th>Article</th><th>Actual Pageviews</th><th>Actual Rank</th><th>DP Pageviews</th><th>DP Rank</th><th>Pageviews Diff</th><th>Rank Diff</th><th>Aggregate to Weekly?</th></tr></thead>';
-				table_html += '</table>';
-				$("#results").append(table_html);
-				for (var article in data["results"]) {
-					var row = {};
-					if (article.length > 48) {
-						row['Article'] = '<a href="https://' + document.getElementById('lang').value + '.wikipedia.org/wiki/' + article + '">' + article.substring(0, 45).replaceAll('_', ' ') + "...</a>";
-					} else {
-						row['Article'] = '<a href="https://' + document.getElementById('lang').value + '.wikipedia.org/wiki/' + article + '">' + article.replaceAll('_', ' ') + "</a>";
-					}
-					row['Actual Pageviews'] = data["results"][article]["gt-views"];
-					total_pviews += row['Actual Pageviews'];
-					row['Actual Rank'] = data["results"][article]["gt-rank"];
-
-					if ( data["results"][article]["dp-views"] == -1) {
-						row['DP Pageviews'] = "No data";
-						row['DP Rank'] = "No data";
-						row['Pageviews Diff'] = "No data";
-						row['Rank Diff'] = "No data";
-						row['Aggregate?'] = 1;
-					} else {
-						row['DP Pageviews'] = data["results"][article]["dp-views"];
-						total_dp_pviews += data["results"][article]["dp-views"];
-						row['DP Rank'] = data["results"][article]["dp-rank"];
-						row['Pageviews Diff'] = data["results"][article]["dp-views"] - data["results"][article]["gt-views"];
-						row['Rank Diff'] = data["results"][article]["gt-rank"] - data["results"][article]["dp-rank"];
-						row['Aggregate?'] = data["results"][article]["do-aggregate"];
-					}
-					table_data.push(row);
-				}
-
-				total_dp_diff = total_dp_pviews - total_pviews;
-
-				table_data.push({
-					'Article': 'Total',
-					'Actual Pageviews': total_pviews,
-					'Actual Rank': '-',
-					'DP Pageviews': total_dp_pviews,
-					'DP Rank': '-',
-					'Pageviews Diff': total_dp_diff,
-					'Rank Diff': '-',
-					'Aggregate?': 0,
-				})
-				$('#results-table').DataTable( {
-					"data": table_data,
-					"columns": [{'data': "Article"},
-								{'data': "Actual Pageviews"},
-								{'data': "Actual Rank"},
-								{'data': "DP Pageviews"},
-								{'data': "DP Rank"},
-								{'data': "Pageviews Diff"},
-								{'data': "Rank Diff"},
-								{'data': "Aggregate?", "visible": false}
-								],
-					"searching": false,
-					"scrollY": "600px",
-					"paging": false,
-					"order": [1, 'desc'],
-					"createdRow": function(row, data, dataIndex) {
-						if ( data['Aggregate?'] == 1) {
-							$(row).addClass('below-threshold');
-						}
-					}
-				} );
-			}
-		}
-
-		function queryDiffPrivate() {
-			// NOTE: SWITCH BETWEEN RUNNING LOCALLY AND ON CLOUD VPS
-
-			// LOCAL
-			// var queryUrl = "http://127.0.0.1:8000/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
-
-			// CLOUD VPS
-			var queryUrl = "https://diff-privacy-beam.wmcloud.org/api/v1/pageviews?lang=" + document.getElementById('lang').value + "&eps=" + document.getElementById('eps').value + "&sensitivity=" + document.getElementById('sensitivity').value + "&delta=" + document.getElementById('delta').value + "&privunit=" + document.getElementById('privunit').value;
-
-			$.ajax(queryUrl, {success: render_results.bind(this),
-							  error: function(jqxmlhr, status, error){console.log(status + ": " + error)}
-							  }
-				  );
-	    }
 	</script>
 </body>
 
