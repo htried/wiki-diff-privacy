@@ -305,7 +305,7 @@
 			$("#results").append("<br><p><b>Explanation for delta (δ) = " + document.getElementById('delta').value + "</b>: delta is the probability of information being accidentally leaked. If δ = 0, any output of this database is going to be negligibly different (to the scale of ε) from an adjacent database (i.e. with one entry added or removed). If δ is non-zero, it ensures that for all databases X and Y, the absolute privacy loss of a calculation on the database will be less than or equal to ε with a probability of 1 - δ. If δ is non-zero, we want its value to be smaller than the inverse of any polynomial in the size of the database X (i.e. δ < 1 / ||X||).</p>");
 			$("#results").append("<p>Rows that are <span class='below-threshold'>greyed out</span> have less than a " + 100 * data['params']['alpha'] + "% chance of being within " + 100 * data['params']['prop-within'] + "% of the actual value and are too noisy to be valuable, or else the differentially private count added noise that put them below 0, so they have no data. With a sensitivity of " + data['params']['sensitivity'] + " and epsilon of " + data['params']['eps'] + ", the minimum DP views has to be " + data['params']['aggregate-threshold'] + ".</p>");
 
-			
+
 		// render bar graphic
 		const probs = [
 			{
@@ -447,7 +447,7 @@
 			})
 		}
 
-		const data = {
+		const pdfs = {
     		series: [{values: density(domain, parameters1)},
             		 {values: density(domain, parameters2)}],
 		}
@@ -464,7 +464,7 @@
 
 		const y = d3.scaleLinear()
 			.range([height, 0])
-		    .domain([0, d3.max(data.series, d => d3.max(d.values))]).nice()
+		    .domain([0, d3.max(pdfs.series, d => d3.max(d.values))]).nice()
 
 		makeYLines = () => d3.axisLeft()
 			.scale(y)
@@ -497,7 +497,7 @@
 			.attr("stroke-linejoin", "round")
 			.attr("stroke-linecap", "round")
 			.selectAll("path")
-			.data(data.series)
+			.data(pdfs.series)
 			.join("path")
 			.style("mix-blend-mode", "normal")
 			.attr("d", d => line(d.values));
@@ -529,7 +529,7 @@
 				const xm = x.invert(pointer[0])-3.3333333;
 				const ym = y.invert(pointer[1]);
 				const i = d3.bisectCenter(domain, xm);
-				const s = d3.least(data.series, d => Math.abs(d.values[i] - ym));
+				const s = d3.least(pdfs.series, d => Math.abs(d.values[i] - ym));
 				path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
 				path.attr("opacity", d => d === s ? 1 : 0.5).filter(d => d === s).raise();
 				path.attr("stroke-width", d => d === s ? 2.5 : 1.5).filter(d => d === s).raise();
