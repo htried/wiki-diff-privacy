@@ -6,6 +6,7 @@ server {
     server_name diff-privacy-beam.wmcloud.org;  # to create, see: https://wikitech.wikimedia.org/wiki/Help:Using_a_web_proxy_to_reach_Cloud_VPS_servers_from_the_internet
     # remove this line or change 'private' to 'combined' to restore user-agent + IP information
     access_log /var/log/nginx/access.log private;
+    error_log  /var/log/nginx/error.log debug;
 
     location / {
 	    proxy_http_version 1.1;  # you need to set this in order to use params below.
