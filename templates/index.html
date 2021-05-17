@@ -438,7 +438,7 @@
 
 		const parameters2 = ({
 			mu: 0,
-			b: 1
+			b: document.getElementById("sensitivity").value / document.getElementById("eps").value
 		})
 
 		const density = (domain, parameters) => {
