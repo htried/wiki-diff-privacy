@@ -128,7 +128,7 @@
 
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
 	<script type="text/javascript" src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-	<script src="https://d3js.org/d3.v5.min.js"></script>
+	<script src="https://d3js.org/d3.v6.min.js"></script>
 	<!-- functionality to dynamically update dropdowns based on the selected privacy unit -->
 	<script type="text/javascript">
 	// to remove fn's from global namespace
@@ -298,173 +298,14 @@
 			// render explanation
 			$("#results").empty();
 			$("#results").append("<br><p><b>Explanation for epsilon (ε) = " + document.getElementById('eps').value + "</b>:  Broadly speaking, ε is a value that provides a ceiling on how much the likelihood of single output (in this case, a particular configuration of pageview counts) could increase if a single entry were added or removed from the database.</p><br>");
-			$("#results").append("<div id='container'><svg /></div>")
+			$("#results").append("<div class='container' id='prob_bar_container'><svg id='prob_bar' /></div>")
 			$("#results").append("<br><p>If someone was totally uncertain that a given individual's pageviews were included in this data (50% probability), they could be at most " + Number(Math.round((100 * data['params']['qual-eps']) + 'e2') + 'e-2') + "% certain after viewing data generated under these parameters.</p>");
-			$("#results").append("<p><b>Explanation for delta (δ) = " + document.getElementById('delta').value + "</b>: delta is the probability of information being accidentally leaked. If δ = 0, any output of this database is going to be negligibly different (to the scale of ε) from an adjacent database (i.e. with one entry added or removed). If δ is non-zero, it ensures that for all databases X and Y, the absolute privacy loss of a calculation on the database will be less than or equal to ε with a probability of 1 - δ. If δ is non-zero, we want its value to be smaller than the inverse of any polynomial in the size of the database X (i.e. δ < 1 / ||X||).</p>");
+			$("#results").append("<p>Together, epsilon and sensitivity scale the amount of random Laplace noise added to the raw pageview counts. The plot below shows the <a href='https://en.wikipedia.org/wiki/Probability_density_function'>probability density function</a> of the normal Laplace distribution (ε = 1, sensitivity = 1) and the currently configured Laplace distribution (ε = " + document.getElementById('eps').value + ", sensitivity = " + document.getElementById('sensitivity').value +"). This illustrates exactly how much noise might be added to your pageview counts.</p>")
+			$("#results").append("<div class='container' id='noise_line_container'><svg id='noise_line' /></div>")
+			$("#results").append("<br><p><b>Explanation for delta (δ) = " + document.getElementById('delta').value + "</b>: delta is the probability of information being accidentally leaked. If δ = 0, any output of this database is going to be negligibly different (to the scale of ε) from an adjacent database (i.e. with one entry added or removed). If δ is non-zero, it ensures that for all databases X and Y, the absolute privacy loss of a calculation on the database will be less than or equal to ε with a probability of 1 - δ. If δ is non-zero, we want its value to be smaller than the inverse of any polynomial in the size of the database X (i.e. δ < 1 / ||X||).</p>");
 			$("#results").append("<p>Rows that are <span class='below-threshold'>greyed out</span> have less than a " + 100 * data['params']['alpha'] + "% chance of being within " + 100 * data['params']['prop-within'] + "% of the actual value and are too noisy to be valuable, or else the differentially private count added noise that put them below 0, so they have no data. With a sensitivity of " + data['params']['sensitivity'] + " and epsilon of " + data['params']['eps'] + ", the minimum DP views has to be " + data['params']['aggregate-threshold'] + ".</p>");
 
-			// render graphic
-			const probs = [
-				{
-					epsilon: 'Prior',
-					value: 50.0,
-				},
-				{
-					epsilon: '0.1',
-					value: 52.5,
-				},
-				{
-					epsilon: '0.5',
-					value: 62.25,
-				},
-				{
-					epsilon: '1',
-					value: 73.11,
-				},
-				{
-					epsilon: '2',
-					value: 88.08,
-				}
-		    ];
-
-		    function wrap(text, width) {
-			    text.each(function () {
-			        var text = d3.select(this),
-			            words = text.text().split(/\s+/).reverse(),
-			            word,
-			            line = [],
-			            lineNumber = 0,
-			            lineHeight = 1.1, // ems
-			            x = text.attr("x"),
-			            y = text.attr("y"),
-			            dy = 0, //parseFloat(text.attr("dy")),
-			            tspan = text.text(null)
-			                        .append("tspan")
-			                        .attr("x", x)
-			                        .attr("y", y)
-			                        .attr("dy", dy + "em");
-			        while (word = words.pop()) {
-			            line.push(word);
-			            tspan.text(line.join(" "));
-			            if (tspan.node().getComputedTextLength() > width) {
-			                line.pop();
-			                tspan.text(line.join(" "));
-			                line = [word];
-			                tspan = text.append("tspan")
-			                            .attr("x", x)
-			                            .attr("y", y)
-			                            .attr("dy", ++lineNumber * lineHeight + dy + "em")
-			                            .text(word);
-			            }
-			        }
-			    });
-			}
-
-		    const svg = d3.select('svg');
-		    const svgContainer = d3.select('#container');
-		    const container = document.getElementById('container').getBoundingClientRect();
-		    const selected = document.getElementById('eps').value;
-		    
-		    var margin = .08 * container.width;
-		    if (margin < 50) {
-		    	margin = 50
-		    }
-		    const width = container.width - 2 * margin;
-		    const height = container.height - 2 * margin;
-
-		    console.log(margin, width, height)
-
-		    const chart = svg.append('g')
-				.attr('transform', `translate(${margin}, ${margin})`);
-
-		    const xScale = d3.scaleBand()
-				.range([0, width])
-				.domain(probs.map((s) => s.epsilon))
-				.padding(0.25)
-		    
-		    const yScale = d3.scaleLinear()
-				.range([height, 0])
-				.domain([0, 100]);
-
-		    const makeYLines = () => d3.axisLeft()
-				.scale(yScale)
-
-		    chart.append('g')
-				.attr('transform', `translate(0, ${height})`)
-				.call(d3.axisBottom(xScale));
-
-		    chart.append('g')
-				.call(d3.axisLeft(yScale));
-
-		    chart.append('g')
-				.attr('class', 'grid')
-				.call(makeYLines()
-					.tickSize(-width, 0, 0)
-					.tickFormat('')
-				)
-
-		    const barGroups = chart.selectAll()
-				.data(probs)
-				.enter()
-				.append('g')
-
-		    barGroups
-				.append('rect')
-				.attr('class', 'bar')
-				.attr('x', (g) => xScale(g.epsilon))
-				.attr('y', (g) => yScale(g.value))
-				.attr('height', (g) => height - yScale(g.value))
-				.attr('width', xScale.bandwidth())
-				.attr('fill', (g) => {
-					if (g.epsilon === 'Prior') {
-						return '#f03c57';
-					}
-				return '#80cbc4';
-				})
-				.attr('opacity', (g) => {
-					if (g.epsilon === 'Prior' || g.epsilon === selected) {
-						return 1;
-					}
-				return 0.4;
-				})
-
-		    barGroups 
-				.append('text')
-				.attr('class', 'value')
-				.attr('x', (a) => xScale(a.epsilon) + xScale.bandwidth() / 2)
-				.attr('y', (a) => yScale(a.value) + 30)
-				.attr('text-anchor', 'middle')
-				.text((a) => {
-					if (a.epsilon === 'Prior' || a.epsilon === selected) {
-						return `${a.value}%`
-					}
-				})
-		    
-		    svg
-				.append('text')
-				.attr('class', 'label')
-				.attr('x', -(height / 2) - margin)
-				.attr('y', margin / 2.4)
-				.attr('transform', 'rotate(-90)')
-				.attr('text-anchor', 'middle')
-				.text('Certainty of presence/absence in the dataset')
-
-		    svg.append('text')
-				.attr('class', 'label')
-				.attr('x', width / 2 + margin)
-				.attr('y', height + margin * 1.7)
-				.attr('text-anchor', 'middle')
-				.text('Values of epsilon')
-
-		    svg.append('text')
-				.attr('class', 'title')
-				.attr('x', width / 2 + margin)
-				.attr('y', 40)
-				.attr('text-anchor', 'middle')
-				.text('Changing epsilon affects certainty about presence/absence of a value')
-				.call(wrap, width)
-
-		    // render data table
+			// render data table
 			if ("Error" in data) {
 				$("#results").append("<br><p>Error: " + data["Error"] + "</p>");
 			} else {
@@ -545,7 +386,7 @@
 						}
 					}
 				} );
-			}
+			};
 		}
 
 		function queryDiffPrivate() {
@@ -562,6 +403,278 @@
 							  }
 				  );
 	    }
+	</script>
+
+	<script type="text/javascript">
+		// render graphic
+		const probs = [
+			{
+				epsilon: 'Prior',
+				value: 50.0,
+			},
+			{
+				epsilon: '0.1',
+				value: 52.5,
+			},
+			{
+				epsilon: '0.5',
+				value: 62.25,
+			},
+			{
+				epsilon: '1',
+				value: 73.11,
+			},
+			{
+				epsilon: '2',
+				value: 88.08,
+			}
+	    ];
+
+	    const margin = ({top: 60, right: 60, bottom: 60, left: 60})
+
+	    var svgContainer = d3.select('#prob_bar_container');
+	    var svg = d3.select('#prob_bar');
+	    const selected = '1';
+	    
+	    const width = 1000 - margin.left - margin.right;
+	    const height = 600 - margin.top - margin.bottom;
+
+	    var chart = svg.append('g')
+			.attr('transform', `translate(${margin.top}, ${margin.left})`);
+
+	    const xScale = d3.scaleBand()
+			.range([0, width])
+			.domain(probs.map((s) => s.epsilon))
+			.padding(0.25)
+	    
+	    const yScale = d3.scaleLinear()
+			.range([height, 0])
+			.domain([0, 100]);
+
+	    var makeYLines = () => d3.axisLeft()
+			.scale(yScale)
+
+	    chart.append('g')
+	    	.attr('class', 'axis')
+			.attr('transform', `translate(0, ${height})`)
+			.call(d3.axisBottom(xScale));
+
+	    chart.append('g')
+	    	.attr('class', 'axis')
+			.call(d3.axisLeft(yScale));
+
+	    chart.append('g')
+			.attr('class', 'grid')
+			.call(makeYLines()
+				.tickSize(-width, 0, 0)
+				.tickFormat('')
+			)
+
+	    const barGroups = chart.selectAll()
+			.data(probs)
+			.enter()
+			.append('g')
+
+	    barGroups
+			.append('rect')
+			.attr('class', 'bar')
+			.attr('x', (g) => xScale(g.epsilon))
+			.attr('y', (g) => yScale(g.value))
+			.attr('height', (g) => height - yScale(g.value))
+			.attr('width', xScale.bandwidth())
+			.attr('fill', (g) => {
+				if (g.epsilon === 'Prior') {
+					return '#f03c57';
+				}
+			return '#80cbc4';
+			})
+			.attr('opacity', (g) => {
+				if (g.epsilon === 'Prior' || g.epsilon === selected) {
+					return 1;
+				}
+			return 0.4;
+			})
+
+	    barGroups 
+			.append('text')
+			.attr('class', 'value')
+			.attr('x', (a) => xScale(a.epsilon) + xScale.bandwidth() / 2)
+			.attr('y', (a) => yScale(a.value) + 30)
+			.attr('text-anchor', 'middle')
+			.text((a) => {
+				if (a.epsilon === 'Prior' || a.epsilon === selected) {
+					return `${a.value}%`
+				}
+			})
+	    
+	    svg.append('text')
+			.attr('class', 'label')
+			.attr('x', -(height / 2) - margin.left)
+			.attr('y', margin.left / 2.4)
+			.attr('transform', 'rotate(-90)')
+			.attr('text-anchor', 'middle')
+			.text('Certainty of presence/absence in the dataset')
+
+	    svg.append('text')
+			.attr('class', 'label')
+			.attr('x', width / 2 + margin.bottom)
+			.attr('y', height + margin.bottom * 1.7)
+			.attr('text-anchor', 'middle')
+			.text('Values of epsilon')
+
+	    svg.append('text')
+			.attr('class', 'title')
+			.attr('x', width / 2 + margin.top)
+			.attr('y', 40)
+			.attr('text-anchor', 'middle')
+			.text('Changing epsilon affects certainty about presence/absence of a value')
+	</script>
+
+	<script type="text/javascript">
+	    const domain = [...Array(2000).keys()].map((x) => x / 1000 * 25 - 25);
+	    const parameters1 = ({
+			mu: 0,
+			b: 1
+		})
+
+		const parameters2 = ({
+			mu: 0,
+			b: 1
+		})
+
+		const density = (domain, parameters) => {
+			return domain.map(x => {
+				return 1 / 2 * parameters.b * Math.exp(-Math.abs(x - parameters.mu) / parameters.b)
+			})
+		}
+
+		const data = {
+    		series: [{values: density(domain, parameters1)},
+            		 {values: density(domain, parameters2)}],
+		}
+
+		svgContainer = d3.select('#noise_line_container');
+	   	svg = d3.select('#noise_line');
+		chart = svg.append('g')
+			.attr('transform', `translate(${margin.top}, ${margin.left})`);
+
+		const x = d3.scaleLinear()
+			.range([0, width])
+		    .domain(d3.extent(domain))
+
+		const y = d3.scaleLinear()
+			.range([height, 0])
+		    .domain([0, d3.max(data.series, d => d3.max(d.values))]).nice()
+
+		makeYLines = () => d3.axisLeft()
+			.scale(y)
+
+	    chart.append('g')
+	    	.attr('class', 'axis')
+			.attr('transform', `translate(0, ${height})`)
+			.call(d3.axisBottom(x));
+
+	    chart.append('g')
+	    	.attr('class', 'axis')
+			.call(d3.axisLeft(y));
+
+	    chart.append('g')
+			.attr('class', 'grid')
+			.call(makeYLines()
+				.tickSize(-width, 0, 0)
+				.tickFormat('')
+			)
+
+		const line = d3.line()
+		    .defined(d => !isNaN(d))
+		    .x((d, i) => x(domain[i]))
+		    .y(d => y(d))
+
+		const path = chart.append("g")
+			.attr("fill", "none")
+			.attr("stroke", "#80cbc4")
+			.attr("stroke-width", 1.5)
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.selectAll("path")
+			.data(data.series)
+			.join("path")
+			.style("mix-blend-mode", "normal")
+			.attr("d", d => line(d.values));
+
+		svg.call(hover, path);
+
+		function hover(svg, path) {
+  
+			svg
+				.on("mousemove", moved)
+				.on("mouseenter", entered)
+				.on("mouseleave", left);
+
+			const dot = chart.append("g")
+				.attr("display", "none");
+
+			dot.append("circle")
+				.attr("r", 2.5);
+
+			dot.append("text")
+				.attr("font-family", "sans-serif")
+				.attr("font-size", 10)
+				.attr("text-anchor", "middle")
+				.attr("y", -8);
+
+			function moved(event) {
+				event.preventDefault();
+				const pointer = d3.pointer(event, this);
+				const xm = x.invert(pointer[0])-3.3333333;
+				const ym = y.invert(pointer[1]);
+				const i = d3.bisectCenter(domain, xm);
+				const s = d3.least(data.series, d => Math.abs(d.values[i] - ym));
+				path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
+				path.attr("opacity", d => d === s ? 1 : 0.5).filter(d => d === s).raise();
+				path.attr("stroke-width", d => d === s ? 2.5 : 1.5).filter(d => d === s).raise();
+				dot.attr("transform", `translate(${x(domain[i])},${y(s.values[i])})`);
+				dot.select("text").text(`(noise: ${domain[i].toFixed(2)}, likelihood: ${s.values[i].toFixed(2)})`);
+			}
+
+			function entered() {
+				path.style("mix-blend-mode", null)
+					.attr("stroke", "#ddd")
+					.attr("opacity", 0.5)
+					.attr("stroke-width", 1.5);
+				dot.attr("display", null);
+			}
+
+			function left() {
+				path.style("mix-blend-mode", "normal")
+					.attr("stroke", null)
+					.attr("opacity", 1)
+					.attr("stroke-width", 1.5);
+				dot.attr("display", "none");
+			}
+		}
+
+		svg.append('text')
+			.attr('class', 'label')
+			.attr('x', -(height / 2) - margin.left)
+			.attr('y', margin.left / 2.4)
+			.attr('transform', 'rotate(-90)')
+			.attr('text-anchor', 'middle')
+			.text('Relative likelihood of that amount of noise being added')
+
+	    svg.append('text')
+			.attr('class', 'label')
+			.attr('x', width / 2 + margin.bottom)
+			.attr('y', height + margin.bottom * 1.7)
+			.attr('text-anchor', 'middle')
+			.text('Amount of noise added')
+
+	    svg.append('text')
+			.attr('class', 'title')
+			.attr('x', width / 2 + margin.top)
+			.attr('y', 40)
+			.attr('text-anchor', 'middle')
+			.text('Probability density function for different epsilons and sensitivities')
 	</script>
 
 </body>

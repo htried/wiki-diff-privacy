@@ -838,7 +838,7 @@ body.js #tool_main form label.placeholder.off .field_name {
 
 /* svg stuff */
 
-div#container {
+.container {
 	text-align: center;
 	width: 1000px;
 	height: 600px;
@@ -856,9 +856,9 @@ text {
 	fill: #fff;
 }
 
-path {
+/*path {
 	stroke: gray;
-}
+}*/
 
 line {
 	stroke: gray;
@@ -868,6 +868,10 @@ line#limit {
 	stroke: #FED966;
 	stroke-width: 3;
 	stroke-dasharray: 3 6;
+}
+
+.axis path {
+	stroke: gray;
 }
 
 .grid path {
